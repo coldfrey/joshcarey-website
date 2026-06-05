@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import { work } from '../data/work';
+---
+
+<Base title="Work" description="Things Josh Carey has built and worked on.">
+  <h1 class="page-title">Work</h1>
+  <p class="page-lede">Things I’ve built, shipped, and contributed to.</p>
+
+  <ul class="entry-list">
+    {
+      work.map((item) => (
+        <li class="entry">
+          {item.href ? (
+            <a class="entry-link" href={item.href} target="_blank" rel="noopener">
+              <span>
+                <span class="entry-head">
+                  <span class="entry-title">{item.title}</span>
+                  {item.tag && <span class="tag">{item.tag}</span>}
+                </span>
+                <p class="entry-desc">{item.description}</p>
+              </span>
+              <span class="entry-meta">{item.year}</span>
+            </a>
+          ) : (
+            <div class="entry-link">
+              <span>
+                <span class="entry-head">
+                  <span class="entry-title">{item.title}</span>
+                  {item.tag && <span class="tag">{item.tag}</span>}
+                </span>
+                <p class="entry-desc">{item.description}</p>
+              </span>
+              <span class="entry-meta">{item.year}</span>
+            </div>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+</Base>

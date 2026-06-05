@@ -1,0 +1,11 @@
+# Cloudflare Pages headers — https://developers.cloudflare.com/pages/configuration/headers/
+
+# Long-cache fingerprinted assets
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Sensible security defaults for all routes
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY

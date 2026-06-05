@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE, SOCIALS } from '../config';
+---
+
+<Base>
+  <section class="hero">
+    <img
+      class="avatar"
+      src={SITE.avatar}
+      alt="Josh Carey"
+      width="84"
+      height="84"
+    />
+    <div>
+      <h1>Hey, I’m Josh 👋</h1>
+      <p class="tagline">I build things on the web.</p>
+    </div>
+  </section>
+
+  <div class="intro">
+    <p>
+      Welcome to my corner of the internet. I’m a software engineer who likes
+      shipping clean, useful things — and occasionally writing about them.
+    </p>
+    <p>
+      Take a look at my <a href="/work">work</a>, read the
+      <a href="/blog">blog</a>, or say hi.
+    </p>
+  </div>
+
+  <div class="socials">
+    {
+      SOCIALS.map((s) => (
+        <a href={s.href} rel="me noopener" target="_blank">
+          {s.label}
+        </a>
+      ))
+    }
+  </div>
+</Base>

@@ -1,0 +1,45 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .filter((p) => !p.data.draft || import.meta.env.DEV)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+
+<Base title="Blog" description="Writing and notes by Josh Carey.">
+  <h1 class="page-title">Blog</h1>
+  <p class="page-lede">Notes, ideas, and things worth writing down.</p>
+
+  {
+    posts.length === 0 ? (
+      <p class="page-lede">No posts yet — check back soon.</p>
+    ) : (
+      <ul class="entry-list">
+        {posts.map((post) => (
+          <li class="entry">
+            <a class="entry-link" href={`/blog/${post.id}/`}>
+              <span>
+                <span class="entry-head">
+                  <span class="entry-title">{post.data.title}</span>
+                  {post.data.draft && <span class="tag">draft</span>}
+                </span>
+                {post.data.description && (
+                  <p class="entry-desc">{post.data.description}</p>
+                )}
+              </span>
+              <span class="entry-meta">
+                <time datetime={post.data.date.toISOString()}>
+                  {fmt(post.data.date)}
+                </time>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Base>
