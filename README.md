@@ -44,22 +44,32 @@ Posts are just markdown files — **add one, push, and it goes live on the next 
 - **Favicon** → replace `public/favicon.svg`
 - **Custom domain** → update `site` in `astro.config.mjs`
 
-## Deploy to Cloudflare Pages
+## Deploy to Cloudflare Pages (CI/CD on push to main)
 
-**Recommended — Git integration (auto-deploys on every push):**
+This repo deploys via GitHub Actions (`.github/workflows/deploy.yml`): every push
+to `main` builds the site and runs `wrangler pages deploy`. So adding a blog `.md`
+and pushing is all it takes to go live.
 
-1. Push this repo to GitHub.
-2. Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** →
-   **Connect to Git** → pick this repo.
-3. Build settings:
-   - Framework preset: **Astro**
-   - Build command: `npm run build`
-   - Build output directory: `dist`
-4. Save & Deploy. Every push to `main` now redeploys automatically.
+**One-time setup** — add two repo secrets so CI can authenticate to Cloudflare:
 
-**Or — manual deploy from your machine:**
+1. Create a Cloudflare API token with the **Cloudflare Pages → Edit** permission
+   (Dashboard → My Profile → API Tokens), and grab your **Account ID**
+   (Dashboard → Workers & Pages → Account details).
+2. Add them as GitHub Actions secrets:
+
+   ```bash
+   gh secret set CLOUDFLARE_API_TOKEN
+   gh secret set CLOUDFLARE_ACCOUNT_ID
+   ```
+
+That's it — the next push to `main` provisions the `joshcarey-website` Pages
+project (if needed) and deploys. The live URL is
+`https://joshcarey-website.pages.dev` (custom domain is wired up separately in
+the Cloudflare dashboard).
+
+**Manual deploy from your machine (optional):**
 
 ```bash
-npx wrangler login        # one-time browser auth
-npm run deploy            # builds + uploads ./dist
+npx wrangler login   # one-time browser auth
+npm run deploy       # builds + uploads ./dist
 ```
