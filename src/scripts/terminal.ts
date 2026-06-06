@@ -275,6 +275,23 @@ commands.man = {
     print(`${args[0]} — ${c.help}`);
   },
 };
+// handy aliases
+commands.h = { hidden: true, help: '', run: commands.help.run };
+commands['?'] = { hidden: true, help: '', run: commands.help.run };
+commands.cls = { hidden: true, help: '', run: commands.clear.run };
+commands.dir = { hidden: true, help: '', run: commands.ls.run };
+commands.about = {
+  hidden: true,
+  help: '',
+  run: () => commands.cat.run({ args: ['about.txt'], flags: new Set() }),
+};
+commands.gallery = {
+  help: 'browse photos',
+  run: () => {
+    commands.cd.run({ args: ['gallery'], flags: new Set() });
+    commands.ls.run({ args: [], flags: new Set() });
+  },
+};
 
 /* ---------- the shell loop ---------- */
 function exec(raw: string, addHistory: boolean) {
@@ -361,9 +378,10 @@ function complete() {
 
   const m = /(\S*)$/.exec(val)!;
   const token = m[1];
-  if (!token) return; // empty token → no-op (don't dump everything)
   const prefix = val.slice(0, val.length - token.length);
   const isFirst = prefix.trim() === '';
+  // only no-op when the whole line is empty; "cat " + Tab should list files
+  if (token === '' && isFirst) return;
 
   let pool: string[];
   if (isFirst) {
@@ -490,11 +508,10 @@ function updatePS1() {
   if (sp) sp.textContent = p;
 }
 function scrollToInput() {
-  // Scroll the document all the way to the bottom (past the sticky status bar).
-  requestAnimationFrame(() => {
-    const el = document.scrollingElement || document.documentElement;
-    el.scrollTop = el.scrollHeight;
-  });
+  // Pin to the bottom SYNCHRONOUSLY so the prompt never leaves the viewport,
+  // even when Enter is held down (smooth-scroll is disabled in dark mode).
+  const el = document.scrollingElement || document.documentElement;
+  el.scrollTop = el.scrollHeight;
 }
 
 /* ---------- rendered line + block caret ---------- */
