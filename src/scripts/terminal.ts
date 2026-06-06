@@ -268,7 +268,12 @@ const commands: Record<string, Cmd> = {
       const linkRe = /(https?:\/\/[^\s]+|mailto:[^\s]+)/;
       (node.content || '').split('\n').forEach((l) => {
         if (l.startsWith('→ ')) {
-          const href = l.slice(2).trim();
+          const shown = l.slice(2).trim();
+          // Posts display as /writing/… for consistency, but the page route
+          // still lives at /blog/… — navigate there.
+          const href = shown.startsWith('/writing/')
+            ? shown.replace('/writing/', '/blog/')
+            : shown;
           const a = document.createElement('a');
           a.className = 'term-link';
           a.href = href;
@@ -317,7 +322,7 @@ const commands: Record<string, Cmd> = {
       const { node } = resolve(args[0]);
       const href = node?.href;
       if (!href) return void print(`open: ${args[0]}: nothing to open`, 'term-err');
-      print(`opening ${href} …`, 'term-dim');
+      print(`opening ${href.replace('/blog/', '/writing/')} …`, 'term-dim');
       window.location.href = href;
     },
   },

@@ -65,7 +65,7 @@ try: ls · git log · gallery · help`;
       type: 'file',
       href: `/blog/${p.id}/`,
       meta: p.data.date.toISOString().slice(0, 10),
-      content: `# ${p.data.title}\n${p.data.date.toISOString().slice(0, 10)}\n\n${p.data.description ?? ''}\n\n→ /blog/${p.id}/`,
+      content: `# ${p.data.title}\n${p.data.date.toISOString().slice(0, 10)}\n\n${p.data.description ?? ''}\n\n→ /writing/${p.id}/`,
     };
   }
 
