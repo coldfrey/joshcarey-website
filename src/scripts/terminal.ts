@@ -1304,7 +1304,6 @@ function exec(raw: string, addHistory: boolean) {
 
 /* ---------- input handling ---------- */
 let inputEl: HTMLInputElement | null = null;
-let viewportWired = false;
 
 function onKeyDown(e: KeyboardEvent) {
   if (!inputEl) return;
@@ -1768,17 +1767,6 @@ function scrollToInput() {
   if (outEl) outEl.scrollTop = outEl.scrollHeight;
   const el = document.scrollingElement || document.documentElement;
   el.scrollTop = el.scrollHeight;
-}
-
-// Keep the terminal sized to the *visible* area so the prompt stays above the
-// soft keyboard. visualViewport.height shrinks when the keyboard opens; its
-// offsetTop moves if the page gets nudged under the keyboard.
-function syncViewport() {
-  const vv = window.visualViewport;
-  if (!vv) return;
-  const root = document.documentElement;
-  root.style.setProperty('--app-height', vv.height + 'px');
-  root.style.setProperty('--app-top', vv.offsetTop + 'px');
 }
 
 /* ---------- rendered line + block caret ---------- */
