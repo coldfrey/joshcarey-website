@@ -1412,15 +1412,63 @@ a:hover {
     filter: brightness(1);
   }
 }
+/* CRT power-off collapse: the boot screen snaps to a bright horizontal line
+   and vanishes, revealing the terminal powering on underneath. */
 @keyframes crt-off {
-  to {
+  0% {
+    transform: scaleY(1);
+    filter: brightness(1.2);
+    opacity: 1;
+  }
+  55% {
+    transform: scaleY(0.02);
+    filter: brightness(7);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.006);
+    filter: brightness(18);
     opacity: 0;
-    filter: brightness(1.6);
   }
 }
+/* the blinking boot cursor that rides the streamed log */
+.boot-cursor {
+  color: var(--amber, #ffb000);
+  text-shadow: 0 0 6px currentColor;
+  animation: boot-blink 1s steps(1) infinite;
+}
+@keyframes boot-blink {
+  50% {
+    opacity: 0;
+  }
+}
+/* terminal "turns on" as the boot screen collapses */
+@keyframes crt-screen-on {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.004);
+    filter: brightness(9);
+  }
+  42% {
+    opacity: 1;
+    transform: scaleY(1.03);
+    filter: brightness(2.6);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+    filter: brightness(1);
+  }
+}
+[data-theme="dark"] .term-window.crt-on {
+  animation: crt-screen-on 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: center;
+}
 @media (prefers-reduced-motion: reduce) {
-  .crt-boot {
-    animation: none;
+  .crt-boot,
+  .boot-cursor,
+  .term-window.crt-on {
+    animation: none !important;
   }
 }
 

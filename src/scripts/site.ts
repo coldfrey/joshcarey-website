@@ -76,55 +76,103 @@ function initTermFont() {
   applyTermFont(v);
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+function bootCharDelay(ch: string) {
+  let d = 3 + Math.random() * 8; // fast machine boot (~90–120 cps)
+  if (ch === ':' || ch === ']') d += 10 + Math.random() * 20;
+  if (Math.random() < 0.015) d += 70 + Math.random() * 120; // rare hesitation
+  return d;
+}
+
+const BOOT_LINES = [
+  'joshOS 2.0  (c) 2026 joshuacarey',
+  '[ ok ] cpu: 1 core online',
+  '[ ok ] mem: 16384K OK',
+  '[ ok ] mount / : about work blog gallery',
+  '[ ok ] amber-crt display driver',
+  'login: joshuacarey (auto)',
+  'welcome — type `help`',
+];
+
 let booting = false;
-function playBoot(done?: () => void) {
+function playBoot(done?: () => void, quick = false) {
   if (booting) return;
   booting = true;
   const root = document.documentElement;
-  // Opaque overlay appended FIRST so it covers the terminal before anything
-  // is visible (no flash of the terminal behind a "powering on" reveal).
+  root.classList.remove('preboot');
+
+  // Quick path (manual toggle): just power the screen on, no typewriter.
+  if (quick || reduceMotion()) {
+    const win = document.querySelector('.term-window');
+    win?.classList.add('crt-on');
+    window.setTimeout(() => {
+      win?.classList.remove('crt-on');
+      booting = false;
+      done && done();
+    }, 520);
+    try { sessionStorage.setItem('booted', '1'); } catch {}
+    return;
+  }
+
   const overlay = document.createElement('div');
   overlay.className = 'crt-boot';
   const pre = document.createElement('pre');
+  const cursor = document.createElement('span');
+  cursor.className = 'boot-cursor';
+  cursor.textContent = '█';
+  pre.appendChild(cursor);
   overlay.appendChild(pre);
   document.body.appendChild(overlay);
   root.classList.remove('preboot');
   try { sessionStorage.setItem('booted', '1'); } catch {}
 
+  // CRT collapse → terminal power-on morph
   const finish = () => {
+    if (!booting) return;
+    cursor.remove();
     overlay.classList.add('off');
+    const win = document.querySelector('.term-window');
+    win?.classList.add('crt-on');
     window.setTimeout(() => {
       overlay.remove();
+      win?.classList.remove('crt-on');
       booting = false;
       done && done();
-    }, 340);
+    }, 480);
   };
 
-  const lines = [
-    'joshOS 2.0  (c) 2026 joshuacarey',
-    'POST … memory OK',
-    'mounting /  →  about.txt work/ blog/ gallery/',
-    'loading theme: amber-crt … ok',
-    "type `help` or `ls`. press `?` for shortcuts.",
-    'ready.',
-  ];
-
   if (reduceMotion()) {
-    pre.textContent = lines.join('\n');
+    pre.insertBefore(document.createTextNode(BOOT_LINES.join('\n')), cursor);
     window.setTimeout(finish, 350);
     return;
   }
-  let i = 0;
-  const tick = () => {
-    if (i < lines.length) {
-      pre.textContent += lines[i] + '\n';
-      i++;
-      window.setTimeout(tick, 105);
-    } else {
-      window.setTimeout(finish, 240);
+
+  let skipped = false;
+  const onSkip = () => { skipped = true; };
+  window.addEventListener('keydown', onSkip, { once: true });
+  overlay.addEventListener('click', onSkip, { once: true });
+
+  (async () => {
+    for (let li = 0; li < BOOT_LINES.length; li++) {
+      const text = BOOT_LINES[li];
+      const node = document.createTextNode('');
+      pre.insertBefore(node, cursor);
+      if (skipped) {
+        node.textContent = BOOT_LINES.slice(li).join('\n') + '\n';
+        break;
+      }
+      for (let ci = 0; ci < text.length; ci++) {
+        if (skipped) { node.textContent = text; break; }
+        node.textContent += text[ci];
+        await sleep(bootCharDelay(text[ci]));
+      }
+      pre.insertBefore(document.createTextNode('\n'), cursor);
+      if (!skipped) await sleep(30 + Math.random() * 60);
     }
-  };
-  tick();
+    window.removeEventListener('keydown', onSkip);
+    await sleep(skipped ? 120 : 260);
+    finish();
+  })();
 }
 
 function focusTerminal() {
@@ -136,7 +184,7 @@ function toggleTheme() {
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
   if (next === 'dark') {
     applyTheme('dark');
-    playBoot(focusTerminal);
+    playBoot(focusTerminal, true); // quick power-on on manual toggle
   } else {
     applyTheme('light');
   }
