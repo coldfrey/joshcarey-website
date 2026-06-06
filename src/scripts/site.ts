@@ -441,7 +441,13 @@ function onClick(e: MouseEvent) {
     const kind = win.dataset.win;
     if (kind === 'close') return toggleTheme(); // red → exit terminal → light
     if (kind === 'min') return void (window as any).__termClear?.(); // yellow → clear
-    if (kind === 'zoom') return setTermFont(termFont >= 20 ? 16 : 22); // green → toggle size
+    if (kind === 'zoom') {
+      setTermFont(termFont >= 20 ? 16 : 22); // green → toggle size
+      (document.getElementById('term-input') as HTMLInputElement | null)?.focus({
+        preventScroll: true,
+      });
+      return;
+    }
   }
   if (t.closest('#theme-toggle')) return toggleTheme();
   if (t.closest('[data-theme-switch]')) return toggleTheme();
