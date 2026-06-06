@@ -86,6 +86,23 @@ function resolve(input: string): { segs: string[]; node: FsNode | null } {
 
 const pretty = (segs: string[]) => '~' + (segs.length ? '/' + segs.join('/') : '');
 
+/* ---------- shareable deep links (?p=blog/hello-world.md) ---------- */
+// Use the URL hash for deep links — Astro's ClientRouter manages pathname/search
+// but never touches the hash, so #p=… survives navigation/scroll.
+function setUrl(path: string) {
+  try {
+    const want = path ? 'p=' + encodeURIComponent(path) : '';
+    if (location.hash.replace(/^#/, '') === want) return;
+    if (want) location.hash = want;
+    else history.replaceState(history.state, '', location.pathname + location.search);
+  } catch {}
+}
+function readDeepLink(): string | null {
+  const h = location.hash.replace(/^#/, '');
+  if (!h) return null;
+  return new URLSearchParams(h).get('p');
+}
+
 /* ---------- output rendering (XSS-safe: textContent only) ---------- */
 let outEl: HTMLElement | null = null;
 
@@ -183,9 +200,15 @@ const commands: Record<string, Cmd> = {
     help: 'print a file',
     run({ args }) {
       if (!args[0]) return void print('usage: cat <file>', 'term-dim');
-      const { node } = resolve(args[0]);
+      const { segs, node } = resolve(args[0]);
       if (!node) return void print(`cat: ${args[0]}: no such file`, 'term-err');
       if (node.type === 'dir') return void print(`cat: ${args[0]}: is a directory`, 'term-err');
+      const box = document.createElement('div');
+      box.className = 'cat-box';
+      const head = document.createElement('div');
+      head.className = 'cat-head';
+      head.textContent = segs.length ? segs.join('/') : args[0];
+      box.appendChild(head);
       (node.content || '').split('\n').forEach((l) => {
         if (l.startsWith('→ ')) {
           const href = l.slice(2).trim();
@@ -197,11 +220,14 @@ const commands: Record<string, Cmd> = {
             a.rel = 'noopener';
           }
           a.textContent = l;
-          const div = line();
+          const div = line('', 'cat-line');
           div.appendChild(a);
-          print(div);
-        } else print(l);
+          box.appendChild(div);
+        } else box.appendChild(line(l, 'cat-line'));
       });
+      print(box);
+      // shareable deep-link: ?p=blog/hello-world.md
+      setUrl(segs.join('/'));
     },
   },
   open: {
@@ -747,14 +773,33 @@ function renderLine() {
   const v = inputEl.value;
   let pos = inputEl.selectionStart ?? v.length;
   if (pos < 0) pos = v.length;
-  const under = v.slice(pos, pos + 1);
   lineEl.textContent = '';
-  lineEl.appendChild(document.createTextNode(v.slice(0, pos)));
+  highlightInto(lineEl, v);
   const caret = document.createElement('span');
   caret.className = 'caret';
-  caret.textContent = under || ' ';
+  caret.style.left = `calc(${pos} * 1ch)`;
   lineEl.appendChild(caret);
-  lineEl.appendChild(document.createTextNode(v.slice(pos + (under ? 1 : 0))));
+}
+
+// Live syntax highlighting (fish-style): valid/invalid command, flags, paths.
+function highlightInto(container: HTMLElement, v: string) {
+  if (!v) return;
+  const parts = v.split(/(\s+)/);
+  let word = 0;
+  for (const seg of parts) {
+    if (!seg) continue;
+    if (/^\s+$/.test(seg)) {
+      container.appendChild(document.createTextNode(seg));
+      continue;
+    }
+    const span = document.createElement('span');
+    span.textContent = seg;
+    if (word === 0) span.className = commands[seg] ? 'tok-cmd' : 'tok-bad';
+    else if (seg.startsWith('-')) span.className = 'tok-flag';
+    else span.className = FS && resolve(seg).node ? 'tok-path' : 'tok-arg';
+    container.appendChild(span);
+    word++;
+  }
 }
 
 function bumpTyping() {
@@ -775,8 +820,22 @@ async function init() {
   loadHistory();
   cwd = [];
   await loadFS();
-  updatePS1();
-  welcome();
+
+  // shareable deep link: /#p=blog/hello-world.md → land straight in that file
+  const deep = readDeepLink();
+  const deepNode = deep ? resolve(deep).node : null;
+  if (deep && deepNode && deepNode.type === 'file') {
+    const parts = deep.split('/').filter(Boolean);
+    const file = parts.pop()!;
+    if (parts.length) commands.cd.run({ args: [parts.join('/')], flags: new Set() });
+    updatePS1();
+    print('joshuacarey@web — shared link · type `help` to explore', 'term-dim');
+    print('');
+    exec('cat ' + file, false);
+  } else {
+    updatePS1();
+    welcome();
+  }
   renderLine();
 
   form.addEventListener('submit', (e) => {

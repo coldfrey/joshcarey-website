@@ -1707,6 +1707,7 @@ kbd {
   z-index: -1;
 }
 .term-line-live {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   margin-left: 0.6ch;
@@ -1715,13 +1716,34 @@ kbd {
   color: var(--fg);
   text-shadow: var(--glow);
 }
-/* the block caret renders the char it covers, inverted */
+/* absolute block caret — sits at selectionStart (monospace = pos * 1ch),
+   inverts whatever char is under it via blend mode */
 .term-line-live .caret {
-  display: inline-block;
-  min-width: 0.62ch;
+  position: absolute;
+  top: 0;
+  width: 1ch;
+  height: 1.3em;
   background: var(--amber);
-  color: #120c03;
-  text-shadow: none;
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+/* input syntax highlighting (fish-style) */
+.tok-cmd {
+  color: #ffd479;
+  text-shadow: var(--glow);
+}
+.tok-bad {
+  color: #e8856a;
+}
+.tok-flag {
+  color: var(--muted);
+}
+.tok-path {
+  color: #9fd17a;
+}
+.tok-arg {
+  color: var(--fg);
 }
 #terminal:focus-within .term-line-live .caret {
   animation: caret-blink 1.05s steps(1) infinite;
@@ -1733,8 +1755,8 @@ kbd {
 /* hollow caret when the terminal isn't focused — the real-terminal tell */
 #terminal:not(:focus-within) .term-line-live .caret {
   background: transparent;
-  color: var(--fg);
   box-shadow: inset 0 0 0 1px var(--amber);
+  mix-blend-mode: normal;
   animation: none;
 }
 @keyframes caret-blink {
@@ -1772,10 +1794,16 @@ kbd {
   border: none;
   font: inherit;
   cursor: pointer;
-  padding: 0;
-  margin: 0 2.2ch 0 0;
+  padding: 0 0.3ch;
+  margin: 0 1.9ch 0 0;
   color: inherit;
   text-shadow: var(--glow);
+  border-radius: 3px;
+  /* dotted underline signals "this is clickable" without shouting */
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, var(--amber) 30%, transparent);
+  text-underline-offset: 3px;
+  transition: background 0.12s ease, text-decoration-color 0.12s ease;
 }
 .ls-dir {
   color: var(--accent);
@@ -1784,8 +1812,12 @@ kbd {
 .ls-file {
   color: var(--fg);
 }
-.ls-entry:hover {
-  text-decoration: underline;
+.ls-entry:hover,
+.ls-entry:focus-visible {
+  outline: none;
+  text-decoration-style: solid;
+  text-decoration-color: currentColor;
+  background: color-mix(in srgb, var(--amber) 15%, transparent);
 }
 .term-ls {
   display: flex;
@@ -1813,12 +1845,14 @@ kbd {
   font: inherit;
   color: var(--accent);
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 2px;
   text-shadow: var(--glow);
 }
 .term-link:hover {
   color: var(--accent-hover);
-  text-decoration: underline;
+  text-decoration: underline solid;
 }
 .term-link:focus-visible {
   outline: none;
@@ -2007,4 +2041,29 @@ html.preboot::before {
   ::view-transition-group(photo) {
     animation-duration: 0.4s;
   }
+}
+
+/* cat output — a clear "file view" card so content stands out */
+.cat-box {
+  border-left: 2px solid color-mix(in srgb, var(--amber) 45%, transparent);
+  background: rgba(255, 176, 0, 0.05);
+  padding: 0.5em 0.95em 0.65em;
+  margin: 0.3em 0 0.55em;
+  border-radius: 0 5px 5px 0;
+  max-width: 78ch;
+}
+.cat-head {
+  color: var(--faint);
+  font-size: 0.82em;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.45em;
+  padding-bottom: 0.25em;
+}
+.cat-head::before {
+  content: "▸ ";
+  color: var(--accent);
+}
+.cat-line {
+  color: var(--fg);
 }
