@@ -61,11 +61,14 @@ try: ls · git log · gallery · help`;
 
   const blogChildren: Record<string, FsNode> = {};
   for (const p of posts) {
+    // Include the real post body so `cat <post>.md` reads the whole thing in the
+    // terminal (raw markdown — it IS a .md file), not just the description.
+    const body = (p.body ?? '').trim() || (p.data.description ?? '');
     blogChildren[`${p.id}.md`] = {
       type: 'file',
       href: `/blog/${p.id}/`,
       meta: p.data.date.toISOString().slice(0, 10),
-      content: `# ${p.data.title}\n${p.data.date.toISOString().slice(0, 10)}\n\n${p.data.description ?? ''}\n\n→ /writing/${p.id}/`,
+      content: `# ${p.data.title}\n${p.data.date.toISOString().slice(0, 10)}\n\n${body}\n\n→ /writing/${p.id}/`,
     };
   }
 
