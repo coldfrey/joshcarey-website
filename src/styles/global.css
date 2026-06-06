@@ -1860,15 +1860,18 @@ kbd {
 .tok-arg {
   color: var(--fg);
 }
-#terminal:focus-within .term-line-live .caret {
+/* `.is-focused` is toggled by JS on the INPUT's focus/blur — not :focus-within,
+   which also turns true when a scrollback button/link is focused and would make
+   the caret look active while keystrokes actually go elsewhere. */
+#terminal.is-focused .term-line-live .caret {
   animation: caret-blink 1.05s steps(1) infinite;
 }
 .term-line-live.typing .caret {
   animation: none;
   opacity: 1;
 }
-/* hollow caret when the terminal isn't focused — the real-terminal tell */
-#terminal:not(:focus-within) .term-line-live .caret {
+/* hollow caret when the prompt isn't focused — the real-terminal tell */
+#terminal:not(.is-focused) .term-line-live .caret {
   background: transparent;
   box-shadow: inset 0 0 0 1px var(--amber);
   mix-blend-mode: normal;
@@ -2349,14 +2352,12 @@ html.preboot::before {
   position: sticky;
   top: 0;
   z-index: 30;
-  /* full-bleed background so content scrolls cleanly underneath */
+  /* full-bleed SOLID bar flush to the top — no floating glass */
   margin: 0 calc(-1 * var(--pad));
   padding: 0.85rem var(--pad);
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  -webkit-backdrop-filter: saturate(150%) blur(12px);
-  backdrop-filter: saturate(150%) blur(12px);
+  background: var(--bg);
   border-bottom: 1px solid transparent;
-  transition: border-color 0.3s ease, background 0.3s ease;
+  transition: border-color 0.3s ease;
 }
 [data-theme="light"] .topbar.scrolled {
   border-bottom-color: var(--border);
@@ -2522,8 +2523,19 @@ html.preboot::before {
   [data-theme="dark"] .term-ls {
     gap: 0.35em 0.1em;
   }
-  /* title bar clears the notch */
+  /* top bar: solid, flush to the very top (covers the notch) — not floating */
   [data-theme="dark"] .term-titlebar {
+    position: static;
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     padding-top: calc(0.6rem + env(safe-area-inset-top, 0px));
+  }
+  /* drop the floating bottom status/links bar entirely on mobile terminal */
+  [data-theme="dark"] .site-footer {
+    display: none;
+  }
+  [data-theme="dark"] main {
+    padding-bottom: 1.5rem; /* no sticky footer to clear anymore */
   }
 }

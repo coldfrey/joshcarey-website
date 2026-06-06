@@ -242,6 +242,7 @@ function longLine(name: string, node: FsNode, segs: string[]): HTMLElement {
   b.className = 'ls-entry ' + (node.type === 'dir' ? 'ls-dir' : 'ls-file');
   b.dataset.name = name;
   b.dataset.type = node.type;
+  b.dataset.path = '/' + segs.join('/'); // absolute, so clicks work from anywhere
   b.textContent = node.type === 'dir' ? name + '/' : name;
   div.appendChild(b);
   return div;
@@ -569,6 +570,7 @@ const commands: Record<string, Cmd> = {
         up.className = 'ls-entry ls-dir';
         up.dataset.name = '..';
         up.dataset.type = 'dir';
+        up.dataset.path = '/' + tsegs.slice(0, -1).join('/');
         up.textContent = '../';
         row.appendChild(up);
       }
@@ -578,8 +580,10 @@ const commands: Record<string, Cmd> = {
         s.className = 'ls-entry ' + (node.type === 'dir' ? 'ls-dir' : 'ls-file');
         s.dataset.name = name;
         s.dataset.type = node.type;
-        s.textContent = node.type === 'dir' ? name + '/' : name;
+        // absolute path so a click resolves correctly even from old scrollback
+        s.dataset.path = '/' + [...tsegs, name].join('/');
         row.appendChild(s);
+        s.textContent = node.type === 'dir' ? name + '/' : name;
       }
       print(row);
     },
@@ -1880,15 +1884,33 @@ async function init() {
     if (document.activeElement === inputEl) renderLine();
   });
 
-  // Clickable scrollback: ls entries + links act like typed commands.
+  // Drive the caret's "focused" look off the INPUT's real focus (not the CSS
+  // :focus-within, which also fires when a scrollback button/link has focus —
+  // making the caret look active while keystrokes go nowhere).
+  const terminalEl = document.getElementById('terminal');
+  inputEl.addEventListener('focus', () => terminalEl?.classList.add('is-focused'));
+  inputEl.addEventListener('blur', () => terminalEl?.classList.remove('is-focused'));
+
+  // Clickable scrollback: ls entries + links act like typed commands. After a
+  // file/dir click, snap focus back to the prompt so you can keep typing
+  // (otherwise focus stays on the clicked button).
   outEl.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const entry = target.closest('.ls-entry') as HTMLElement | null;
     if (entry) {
-      const name = entry.dataset.name!;
-      if (name === 'gallery') exec('gallery', false);
-      else if (entry.dataset.type === 'dir') exec('cd ' + name, false), exec('ls', false);
-      else exec('cat ' + name, false);
+      // Use the entry's ABSOLUTE path so clicks resolve correctly even from an
+      // older listing further up the scrollback (not relative to current cwd).
+      const path = entry.dataset.path || entry.dataset.name!;
+      const isDir = entry.dataset.type === 'dir';
+      const isGallery = isDir && /(^|\/)gallery$/.test(path);
+      // On touch the gallery TUI needs a keyboard to drive — just browse the
+      // folder instead; on desktop launch the full viewer.
+      if (isGallery && !TOUCH) return void exec('gallery', false); // app manages focus
+      if (isDir) {
+        exec('cd ' + path, false);
+        exec('ls', false);
+      } else exec('cat ' + path, false);
+      if (!TOUCH) inputEl?.focus({ preventScroll: true });
       return;
     }
   });
