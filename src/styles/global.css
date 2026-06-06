@@ -2388,3 +2388,51 @@ html.preboot::before {
 [data-theme="dark"] .site-footer {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
+
+/* =========================================================================
+   v5 — mobile dark terminal lives inside the *visual* viewport
+   iOS/Android raise the soft keyboard over the layout viewport, so a normal
+   page lets the prompt slip behind it. On touch devices we lock the terminal
+   window to window.visualViewport (--app-height / --app-top, set in JS), let
+   the scrollback scroll internally, and keep the prompt + status line pinned
+   just above the keyboard so you can always see what you type.
+   ========================================================================= */
+@media (pointer: coarse) {
+  [data-theme="dark"] .term-window {
+    position: fixed;
+    top: var(--app-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--app-height, 100dvh);
+    min-height: 0;
+  }
+  [data-theme="dark"] main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+    padding: 0.75rem clamp(0.9rem, 4vw, 3rem) 0.4rem;
+    max-width: none;
+  }
+  [data-theme="dark"] #terminal {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+  }
+  [data-theme="dark"] #term-out {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
+  }
+  [data-theme="dark"] #term-form {
+    flex: 0 0 auto;
+    padding-top: 0.15rem;
+  }
+  /* the prompt now pins itself; the status line no longer needs to stick */
+  [data-theme="dark"] .site-footer {
+    position: static;
+  }
+}

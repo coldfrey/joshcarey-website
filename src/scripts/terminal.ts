@@ -514,6 +514,7 @@ function exec(raw: string, addHistory: boolean) {
 
 /* ---------- input handling ---------- */
 let inputEl: HTMLInputElement | null = null;
+let viewportWired = false;
 
 function onKeyDown(e: KeyboardEvent) {
   if (!inputEl) return;
@@ -972,8 +973,22 @@ function scrollToInput() {
   // hidden, so scrolling the document would wrongly jump pages (e.g. Work) to
   // the bottom on load.
   if (document.documentElement.getAttribute('data-theme') !== 'dark') return;
+  // On touch the scrollback scrolls inside #term-out (the window is fixed to the
+  // visual viewport); on desktop the whole page scrolls. Do both — harmless.
+  if (outEl) outEl.scrollTop = outEl.scrollHeight;
   const el = document.scrollingElement || document.documentElement;
   el.scrollTop = el.scrollHeight;
+}
+
+// Keep the terminal sized to the *visible* area so the prompt stays above the
+// soft keyboard. visualViewport.height shrinks when the keyboard opens; its
+// offsetTop moves if the page gets nudged under the keyboard.
+function syncViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const root = document.documentElement;
+  root.style.setProperty('--app-height', vv.height + 'px');
+  root.style.setProperty('--app-top', vv.offsetTop + 'px');
 }
 
 /* ---------- rendered line + block caret ---------- */
@@ -1109,8 +1124,23 @@ async function init() {
   });
   // When the keyboard opens it shrinks the viewport; keep the prompt in view.
   inputEl.addEventListener('focus', () => {
-    setTimeout(scrollToInput, 250);
+    setTimeout(() => {
+      syncViewport();
+      scrollToInput();
+    }, 250);
   });
+
+  // Track the visual viewport so the fixed terminal hugs the keyboard.
+  // (window/visualViewport listeners must bind once — init() re-runs per swap.)
+  syncViewport();
+  if (window.visualViewport && !viewportWired) {
+    viewportWired = true;
+    window.visualViewport.addEventListener('resize', () => {
+      syncViewport();
+      scrollToInput();
+    });
+    window.visualViewport.addEventListener('scroll', syncViewport);
+  }
 
   (window as any).__termSyncPath = termSyncPath;
 
