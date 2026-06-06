@@ -20,3 +20,6 @@ pnpm-debug.log*
 
 # Local image originals — uploaded to R2, not committed
 media-src/
+
+# wrangler local state/cache
+.wrangler/
