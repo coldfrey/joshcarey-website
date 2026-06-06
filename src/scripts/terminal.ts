@@ -519,14 +519,23 @@ const commands: Record<string, Cmd> = {
       top.appendChild(sw);
       print(top);
       print('');
-      print('available commands:', 'term-dim');
-      const list = Object.entries(commands)
-        .filter(([, c]) => !c.hidden)
-        .map(([n, c]) => '  ' + n.padEnd(10) + c.help);
-      list.forEach((l) => print(l));
+      print('the basics:', 'term-dim');
+      // A short, friendly set — enough for anyone to look around. Everything
+      // else is a real command waiting to be discovered (it IS a real shell).
+      const core: [string, string][] = [
+        ['ls', "see what's here"],
+        ['cd <dir>', 'go into a folder  (cd .. to go back)'],
+        ['cat <file>', 'read a file'],
+        ['open <name>', 'open a page or link'],
+        ['gallery', 'browse the photos'],
+        ['neofetch', 'system info'],
+        ['snake', 'play snake 🐍'],
+        ['clear', 'clear the screen'],
+      ];
+      core.forEach(([n, h]) => print('  ' + n.padEnd(12) + h));
       print('');
-      print('explore: cd .. up · cd / root · ls -la · tree · find -name <x> · history: ↑/↓ · tab', 'term-dim');
-      print('it’s a real shell: mkdir/touch/rm/mv/cp persist this session · `reset` to restore', 'term-dim');
+      print('…and it’s a real shell — loads of standard commands work too.', 'term-dim');
+      print('poke around: try `ls -la`, `tree`, `cd /`, `mkdir notes`. ↑/↓ history · tab to complete.', 'term-dim');
     },
   },
   ls: {
