@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1067" width="1600" height="1067">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8d8b0"/>
+      <stop offset="0.6" stop-color="#d98c6a"/>
+      <stop offset="1" stop-color="#7c4a4a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1067" fill="url(#g)"/>
+  <g fill="#5a3a3f" opacity="0.55">
+    <rect x="120" y="560" width="90" height="380"/>
+    <rect x="240" y="480" width="70" height="460"/>
+    <rect x="340" y="620" width="110" height="320"/>
+    <rect x="700" y="520" width="80" height="420"/>
+    <rect x="820" y="440" width="120" height="500"/>
+    <rect x="980" y="600" width="70" height="340"/>
+    <rect x="1200" y="500" width="100" height="440"/>
+    <rect x="1340" y="580" width="80" height="360"/>
+  </g>
+  <text x="48" y="1010" font-family="ui-sans-serif, system-ui, sans-serif" font-size="40" fill="#fff" opacity="0.85" font-weight="600">Skyline</text>
+</svg>

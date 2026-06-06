@@ -1,0 +1,17 @@
+---
+import { SITE } from '../config';
+
+interface Props {
+  cmd: string;
+  path?: string;
+  class?: string;
+}
+
+const { cmd, path = '~', class: extra = '' } = Astro.props;
+---
+
+<p class={`cmd-line ${extra}`}>
+  <span class="usr">{SITE.handle}@web</span><span class="path">:{path}</span><span
+    class="dollar">$</span
+  ><span class="cmd">{cmd}</span>
+</p>

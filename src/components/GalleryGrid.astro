@@ -1,0 +1,89 @@
+---
+import Prompt from './Prompt.astro';
+import { gallery } from '../data/gallery';
+---
+
+{/* ============ LIGHT: photo wall ============ */}
+<div class="gallery doc-only">
+  {
+    gallery.map((item, i) => (
+      <button
+        class="gallery-item"
+        data-index={i}
+        data-full={item.src}
+        data-title={item.title}
+        data-meta={`${item.file} · ${item.size}${item.location ? ' · ' + item.location : ''}`}
+        style={`--ar:${item.w}/${item.h}; --i:${i}`}
+        data-span={item.span}
+        aria-label={`View ${item.title}`}
+        type="button"
+      >
+        <img
+          src={item.src}
+          alt={item.alt}
+          width={item.w}
+          height={item.h}
+          loading={i < 2 ? 'eager' : 'lazy'}
+          decoding="async"
+        />
+        <span class="gi-caption">
+          <span class="gi-title">{item.title}</span>
+          {item.location && <span class="gi-loc">{item.location}</span>}
+        </span>
+      </button>
+    ))
+  }
+</div>
+
+{/* ============ DARK: ls -lh file browser ============ */}
+<div class="gallery-ls term-only">
+  <Prompt cmd="ls -lh ~/gallery" path="~/gallery" />
+  <p class="ls-total">total {gallery.length * 24}</p>
+  <ul class="ls-list" role="list">
+    {
+      gallery.map((item, i) => (
+        <li>
+          <button
+            class="ls-row"
+            data-index={i}
+            data-full={item.src}
+            data-title={item.title}
+            data-meta={`${item.file} · ${item.w}×${item.h} · ${item.size}`}
+            type="button"
+          >
+            <span class="ls-perm">-rw-r--r--</span>
+            <span class="ls-owner">josh web</span>
+            <span class="ls-size">{item.size}</span>
+            <span class="ls-date">{item.date}</span>
+            <span class="ls-name">{item.file}</span>
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+  <p class="ls-hint term-hint">
+    → <span class="cmd">viu &lt;file&gt;</span> or click / press enter to view ·
+    <span class="cmd">j/k</span> to move
+  </p>
+</div>
+
+{/* ============ shared lightbox / viu viewer ============ */}
+<dialog id="lightbox" class="lightbox" aria-label="Image viewer">
+  <button class="lb-close" data-lb-close aria-label="Close (Esc)" type="button"
+    >✕</button
+  >
+  <button class="lb-nav lb-prev" data-lb-prev aria-label="Previous (←)" type="button"
+    >‹</button
+  >
+  <figure class="lb-stage">
+    <span class="lb-prompt term-only"
+      ><span class="usr">joshcarey@web</span><span class="path">:~/gallery</span
+      ><span class="dollar">$</span> viu <span class="lb-cmdfile">image</span></span
+    >
+    <img id="lb-img" alt="" />
+    <figcaption class="lb-caption"></figcaption>
+  </figure>
+  <button class="lb-nav lb-next" data-lb-next aria-label="Next (→)" type="button"
+    >›</button
+  >
+</dialog>

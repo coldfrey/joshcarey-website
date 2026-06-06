@@ -1,0 +1,160 @@
+---
+import Prompt from './Prompt.astro';
+import { work, commitHash, type WorkItem } from '../data/work';
+
+// git decorations like (HEAD -> main, tag: v1.0)
+function decorations(item: WorkItem): string[] {
+  const refs: string[] = [];
+  if (item.status === 'active') refs.push('HEAD -> main');
+  if (item.branch && item.branch !== 'main') refs.push(item.branch);
+  if (item.tag) refs.push(`tag: ${item.tag}`);
+  return refs;
+}
+
+const typeOf = (item: WorkItem) =>
+  item.status === 'archived' ? 'chore' : 'feat';
+---
+
+{/* ============ LIGHT: editorial timeline ============ */}
+<ol class="timeline doc-only" aria-label="Work timeline">
+  {
+    work.map((item, i) => (
+      <li class="tl-entry" style={`--i:${i}`}>
+        <div class="tl-rail">
+          <span class="tl-dot" data-status={item.status} />
+        </div>
+        <div class="tl-card">
+          <div class="tl-yearbig" aria-hidden="true">{item.date}</div>
+          <div class="tl-year">
+            <time>{item.range ?? item.date}</time>
+            {item.status === 'active' && <span class="tl-live">live</span>}
+          </div>
+          <h3 class="tl-title">
+            {item.href ? (
+              <a href={item.href} target="_blank" rel="noopener">
+                {item.title}
+              </a>
+            ) : (
+              item.title
+            )}
+          </h3>
+          {item.role && <p class="tl-role">{item.role}</p>}
+          <p class="tl-desc">{item.description}</p>
+          {item.highlights && (
+            <ul class="tl-highlights">
+              {item.highlights.map((h) => (
+                <li>{h}</li>
+              ))}
+            </ul>
+          )}
+          {item.stack && (
+            <ul class="tl-stack">
+              {item.stack.map((s) => (
+                <li>{s}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </li>
+    ))
+  }
+</ol>
+
+{/* ============ DARK: git log --graph ============ */}
+<div class="gitlog term-only">
+  <Prompt cmd="git log --graph --oneline --decorate" path="~/work" />
+  <div class="gitlog-body" role="list">
+    {
+      work.map((item, i) => {
+        const refs = decorations(item);
+        const hash = commitHash(item.title + item.date);
+        return (
+          <div
+            class="commit"
+            role="listitem"
+            tabindex="0"
+            data-i={i}
+            data-hash={hash}
+          >
+            <div class="commit-line">
+              <span class="graph">*</span>
+              <span class="hash">{hash}</span>
+              {refs.length > 0 && (
+                <span class="decorate">
+                  (
+                  {refs.map((r, j) => (
+                    <>
+                      {j > 0 && <span class="sep">, </span>}
+                      <span
+                        class={
+                          r.startsWith('tag:')
+                            ? 'ref-tag'
+                            : r.startsWith('HEAD')
+                              ? 'ref-head'
+                              : 'ref-branch'
+                        }
+                      >
+                        {r}
+                      </span>
+                    </>
+                  ))}
+                  )
+                </span>
+              )}
+              <span class="subject">
+                <span class="ctype">{typeOf(item)}:</span> {item.title}
+              </span>
+            </div>
+            <div class="commit-body">
+              <p class="cb-line">
+                <span class="graph">│</span>
+                <span class="cb-text">{item.description}</span>
+              </p>
+              {item.stack && (
+                <p class="cb-line">
+                  <span class="graph">│</span>
+                  <span class="cb-meta">stack: {item.stack.join(', ')}</span>
+                </p>
+              )}
+              <p class="cb-line cb-hint">
+                <span class="graph">│</span>
+                <span class="cb-meta">
+                  {item.range ?? item.date} · press enter to `git show`
+                </span>
+              </p>
+              <div class="commit-show" hidden>
+                <p class="cb-line">
+                  <span class="graph">│</span>
+                  <span class="cb-meta">commit {hash}</span>
+                </p>
+                <p class="cb-line">
+                  <span class="graph">│</span>
+                  <span class="cb-meta">Author: Josh Carey</span>
+                </p>
+                <p class="cb-line">
+                  <span class="graph">│</span>
+                  <span class="cb-meta">Date: {item.date}</span>
+                </p>
+                {item.highlights?.map((h) => (
+                  <p class="cb-line">
+                    <span class="graph">│</span>
+                    <span class="cb-add">+ {h}</span>
+                  </p>
+                ))}
+                {item.href && (
+                  <p class="cb-line">
+                    <span class="graph">│</span>
+                    <a class="cb-link" href={item.href} target="_blank" rel="noopener">
+                      → open {item.href}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </div>
+            <p class="cb-line cb-gap"><span class="graph">│</span></p>
+          </div>
+        );
+      })
+    }
+  </div>
+</div>

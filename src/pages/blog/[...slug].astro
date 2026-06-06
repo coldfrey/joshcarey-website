@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Prompt from '../../components/Prompt.astro';
 import { getCollection, render } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
 
@@ -22,6 +23,7 @@ const fmt = (d: Date) =>
 
 <Base title={post.data.title} description={post.data.description}>
   <a class="back-link" href="/blog">← Blog</a>
+  <Prompt cmd={`cat ${post.id}.md`} path="~/blog" class="term-only" />
 
   <article>
     <header class="post-header">

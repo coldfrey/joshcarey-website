@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1067" width="1600" height="1067">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2540"/>
+      <stop offset="0.6" stop-color="#5b3b54"/>
+      <stop offset="1" stop-color="#1a1422"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1067" fill="url(#g)"/>
+  <g fill="#ffcf8a" opacity="0.85">
+    <rect x="220" y="640" width="60" height="300"/>
+    <rect x="320" y="560" width="80" height="380"/>
+    <rect x="440" y="700" width="50" height="240"/>
+    <rect x="900" y="600" width="70" height="340"/>
+    <rect x="1020" y="680" width="55" height="260"/>
+    <rect x="1140" y="540" width="90" height="400"/>
+  </g>
+  <g fill="#fff" opacity="0.5">
+    <circle cx="300" cy="200" r="3"/><circle cx="600" cy="160" r="2"/><circle cx="980" cy="220" r="3"/><circle cx="1300" cy="180" r="2"/>
+  </g>
+  <text x="48" y="1010" font-family="ui-sans-serif, system-ui, sans-serif" font-size="40" fill="#fff" opacity="0.82" font-weight="600">City, after dark</text>
+</svg>

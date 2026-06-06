@@ -1,41 +1,69 @@
 ---
 import Base from '../layouts/Base.astro';
+import Prompt from '../components/Prompt.astro';
 import { SITE, SOCIALS } from '../config';
 ---
 
 <Base>
-  <section class="hero">
-    <img
-      class="avatar"
-      src={SITE.avatar}
-      alt="Josh Carey"
-      width="84"
-      height="84"
-    />
-    <div>
-      <h1>Hey, I’m Josh 👋</h1>
-      <p class="tagline">I build things on the web.</p>
+  {/* ---- whoami / hero ---- */}
+  <section class="block">
+    <Prompt cmd="whoami" class="term-only" />
+
+    <div class="hero doc-only">
+      <img
+        class="avatar"
+        src={SITE.avatar}
+        alt="Josh Carey"
+        width="80"
+        height="80"
+        onerror={`this.onerror=null;this.src='${SITE.avatarFallback}'`}
+      />
+      <div>
+        <h1>Hey, I’m Josh 👋</h1>
+        <p class="tagline">I build things on the web.</p>
+      </div>
+    </div>
+
+    <p class="whoami term-only out">josh carey — i build things on the web</p>
+  </section>
+
+  {/* ---- about ---- */}
+  <section class="block">
+    <Prompt cmd="cat about.txt" class="term-only" />
+    <div class="intro out">
+      <p>
+        Welcome to my corner of the internet. I’m a software engineer who likes
+        shipping clean, useful things — and occasionally writing about them.
+      </p>
+      <p>
+        Take a look at my <a href="/work">work</a>, browse the
+        <a href="/gallery">gallery</a>, or read the <a href="/blog">blog</a>.
+      </p>
     </div>
   </section>
 
-  <div class="intro">
-    <p>
-      Welcome to my corner of the internet. I’m a software engineer who likes
-      shipping clean, useful things — and occasionally writing about them.
-    </p>
-    <p>
-      Take a look at my <a href="/work">work</a>, read the
-      <a href="/blog">blog</a>, or say hi.
-    </p>
-  </div>
+  {/* ---- ls (terminal-only directory listing) ---- */}
+  <section class="block term-only">
+    <Prompt cmd="ls" />
+    <ul class="dir-list out">
+      <li><a href="/work">work/</a></li>
+      <li><a href="/gallery">gallery/</a></li>
+      <li><a href="/blog">blog/</a></li>
+      <li><span class="dir-file">about.txt</span></li>
+    </ul>
+  </section>
 
-  <div class="socials">
-    {
-      SOCIALS.map((s) => (
-        <a href={s.href} rel="me noopener" target="_blank">
-          {s.label}
-        </a>
-      ))
-    }
-  </div>
+  {/* ---- socials ---- */}
+  <section class="block">
+    <Prompt cmd="cat ~/.contacts" class="term-only" />
+    <div class="socials out">
+      {
+        SOCIALS.map((s) => (
+          <a href={s.href} rel="me noopener" target="_blank">
+            {s.label}
+          </a>
+        ))
+      }
+    </div>
+  </section>
 </Base>

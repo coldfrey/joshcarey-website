@@ -4,21 +4,28 @@ export const SITE = {
   title: 'Josh Carey',
   description: 'Personal site of Josh Carey — work, writing, and notes.',
   email: 'josh.fwh.carey@gmail.com',
-  // The avatar lives in /public. Replace profile.svg with your photo
-  // (e.g. add profile.jpg) and update this path.
-  avatar: '/profile.svg',
+  handle: 'joshcarey', // terminal user (joshcarey@web)
+  // The avatar lives in /public. Drop your photo at public/profile.jpg.
+  // Falls back to the placeholder if missing.
+  avatar: '/profile.jpg',
+  avatarFallback: '/profile.svg',
 };
 
 export const NAV = [
-  { href: '/', label: 'Home' },
-  { href: '/work', label: 'Work' },
-  { href: '/blog', label: 'Blog' },
+  { href: '/', label: 'Home', cmd: 'cd ~' },
+  { href: '/work', label: 'Work', cmd: 'git log' },
+  { href: '/gallery', label: 'Gallery', cmd: 'open ~/gallery' },
+  { href: '/blog', label: 'Blog', cmd: 'ls ~/blog' },
 ];
 
 // Add / remove freely. Order is preserved.
 export const SOCIALS = [
-  { label: 'Email', href: 'mailto:josh.fwh.carey@gmail.com' },
-  { label: 'GitHub', href: 'https://github.com/joshcarey' },
-  { label: 'X', href: 'https://x.com/joshcarey' },
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/joshcarey' },
+  { label: 'Email', cmd: 'mail', href: 'mailto:josh.fwh.carey@gmail.com' },
+  { label: 'GitHub', cmd: 'github', href: 'https://github.com/coldfrey' },
+  { label: 'X', cmd: 'x', href: 'https://x.com/joshuacarey_' },
+  {
+    label: 'LinkedIn',
+    cmd: 'linkedin',
+    href: 'https://www.linkedin.com/in/joshua-carey-5156a51aa/',
+  },
 ];

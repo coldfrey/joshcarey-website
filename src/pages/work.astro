@@ -1,41 +1,11 @@
 ---
 import Base from '../layouts/Base.astro';
-import { work } from '../data/work';
+import WorkTimeline from '../components/WorkTimeline.astro';
 ---
 
-<Base title="Work" description="Things Josh Carey has built and worked on.">
-  <h1 class="page-title">Work</h1>
-  <p class="page-lede">Things I’ve built, shipped, and contributed to.</p>
+<Base title="Work" description="Josh Carey’s work — a timeline of projects and roles.">
+  <h1 class="page-title doc-only">Work</h1>
+  <p class="page-lede doc-only">A timeline of what I’ve built, shipped, and explored.</p>
 
-  <ul class="entry-list">
-    {
-      work.map((item) => (
-        <li class="entry">
-          {item.href ? (
-            <a class="entry-link" href={item.href} target="_blank" rel="noopener">
-              <span>
-                <span class="entry-head">
-                  <span class="entry-title">{item.title}</span>
-                  {item.tag && <span class="tag">{item.tag}</span>}
-                </span>
-                <p class="entry-desc">{item.description}</p>
-              </span>
-              <span class="entry-meta">{item.year}</span>
-            </a>
-          ) : (
-            <div class="entry-link">
-              <span>
-                <span class="entry-head">
-                  <span class="entry-title">{item.title}</span>
-                  {item.tag && <span class="tag">{item.tag}</span>}
-                </span>
-                <p class="entry-desc">{item.description}</p>
-              </span>
-              <span class="entry-meta">{item.year}</span>
-            </div>
-          )}
-        </li>
-      ))
-    }
-  </ul>
+  <WorkTimeline />
 </Base>

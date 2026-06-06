@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Prompt from '../../components/Prompt.astro';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog'))
@@ -11,6 +12,7 @@ const fmt = (d: Date) =>
 ---
 
 <Base title="Blog" description="Writing and notes by Josh Carey.">
+  <Prompt cmd="ls -la ~/blog" path="~/blog" class="term-only" />
   <h1 class="page-title">Blog</h1>
   <p class="page-lede">Notes, ideas, and things worth writing down.</p>
 
