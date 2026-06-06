@@ -1,10 +1,16 @@
 // Gallery items.
 // LIGHT mode = sleek justified photo wall. DARK mode = `ls -lh` + `viu` viewer.
 //
-// Photos live in public/gallery/. `w`/`h` are the intrinsic pixel size — used
-// for aspect-ratio (no layout shift) and the terminal "file size" illusion.
-// `size` is the human file size shown in the `ls -lh` listing.
-// After adding/removing photos, run `npm run lqip` to regenerate blur-up previews.
+// Photo ORIGINALS live in media-src/ (gitignored) and are pushed to Cloudflare
+// R2 by the pre-commit hook — never committed to git. They're served from
+// `${MEDIA_BASE}/<filename>`. `w`/`h` are the intrinsic pixel size (drives the
+// aspect-ratio so there's no layout shift, and the terminal "file size" gag).
+// After adding/removing photos: drop them in media-src/, update this list, then
+// run `npm run lqip` to regenerate the inline blur-up previews.
+import { MEDIA_BASE } from '../config';
+
+const img = (file: string) => `${MEDIA_BASE}/${file}`;
+
 export interface GalleryItem {
   src: string;
   alt: string;
@@ -20,7 +26,7 @@ export interface GalleryItem {
 
 export const gallery: GalleryItem[] = [
   {
-    src: '/gallery/under-sail.jpg',
+    src: img('under-sail.jpg'),
     alt: 'A classic ketch sailing under full canvas on open blue water',
     title: 'Under sail',
     file: 'under-sail.jpg',
@@ -31,7 +37,7 @@ export const gallery: GalleryItem[] = [
     span: 'wide',
   },
   {
-    src: '/gallery/sundown-yard.jpg',
+    src: img('sundown-yard.jpg'),
     alt: 'The sun setting behind silhouetted harbour cranes',
     title: 'Sundown at the yard',
     file: 'sundown-yard.jpg',
@@ -42,7 +48,7 @@ export const gallery: GalleryItem[] = [
     span: 'tall',
   },
   {
-    src: '/gallery/the-leap.jpg',
+    src: img('the-leap.jpg'),
     alt: 'A group standing on the edge of a sea arch, about to jump',
     title: 'The leap',
     file: 'the-leap.jpg',
@@ -53,7 +59,7 @@ export const gallery: GalleryItem[] = [
     span: 'wide',
   },
   {
-    src: '/gallery/desert-camp.jpg',
+    src: img('desert-camp.jpg'),
     alt: 'A camper van lit up under a star-filled desert sky',
     title: 'Camp under stars',
     file: 'desert-camp.jpg',
@@ -63,7 +69,7 @@ export const gallery: GalleryItem[] = [
     h: 768,
   },
   {
-    src: '/gallery/the-souk.jpg',
+    src: img('the-souk.jpg'),
     alt: 'Browsing a colourful clothing stall in a busy souk',
     title: 'The souk',
     file: 'the-souk.jpg',
@@ -73,7 +79,7 @@ export const gallery: GalleryItem[] = [
     h: 779,
   },
   {
-    src: '/gallery/mountain-juniper.jpg',
+    src: img('mountain-juniper.jpg'),
     alt: 'A gnarled juniper clinging to a rocky mountain ridge',
     title: 'Mountain juniper',
     file: 'mountain-juniper.jpg',
@@ -84,7 +90,7 @@ export const gallery: GalleryItem[] = [
     span: 'tall',
   },
   {
-    src: '/gallery/atlantic-cliffs.jpg',
+    src: img('atlantic-cliffs.jpg'),
     alt: 'A weathered headland dropping into a hazy Atlantic swell',
     title: 'The headland',
     file: 'atlantic-cliffs.jpg',
@@ -94,7 +100,7 @@ export const gallery: GalleryItem[] = [
     h: 768,
   },
   {
-    src: '/gallery/desert-loader.jpg',
+    src: img('desert-loader.jpg'),
     alt: 'A Caterpillar wheel loader working a sand-blown desert road',
     title: 'Desert machine',
     file: 'desert-loader.jpg',
