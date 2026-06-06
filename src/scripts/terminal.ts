@@ -18,17 +18,27 @@ interface FsNode {
   content?: string;
   meta?: string;
   hidden?: boolean;
+  locked?: boolean; // read/enter denied (you're never root 😉)
   img?: GalleryImg;
   children?: Record<string, FsNode>;
 }
 
-let FS: FsNode | null = null;
+// A real-feeling Unix root. The site content (/fs.json) is *mounted* at
+// /home/joshuacarey; everything else is a believable system tree (with a few
+// things worth finding). Per-session edits (mkdir/touch/rm/…) are journaled to
+// localStorage and replayed on load, so your shell remembers what you did.
+const USER = 'joshuacarey';
+const HOME = ['home', USER];
+
+let siteData: any = null; // raw /fs.json (home content + git commits)
+let ROOT: FsNode | null = null; // synthetic '/'
 let fsPromise: Promise<FsNode | null> | null = null;
-let cwd: string[] = [];
+let cwd: string[] = [...HOME];
 let history: string[] = [];
 let histIdx = -1;
 let draft = '';
 const HKEY = 'term-history';
+const OPSKEY = 'term-fs-ops';
 
 const NEOFETCH = String.raw`
    ____      joshuacarey@web
@@ -41,24 +51,129 @@ const NEOFETCH = String.raw`
    |__|      Uptime: since you got here
 `;
 
+/* ---------- the (mostly) believable filesystem ---------- */
+const PASSWD = `root:x:0:0:root:/root:/usr/bin/jcsh
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+joshuacarey:x:1000:1000:Joshua Carey,,,:/home/joshuacarey:/usr/bin/jcsh
+guest:x:1001:1001:Guest User:/home/guest:/usr/sbin/nologin
+captain:x:1002:1002:Captain,,,:/home/captain:/usr/bin/sailor
+neo:x:1337:1337:Thomas Anderson:/home/neo:/usr/bin/jcsh
+hal:x:9000:9000:HAL 9000:/dev/null:/bin/false`;
+
+const OSREL = `NAME="joshOS"
+VERSION="2.0 (amber-crt)"
+ID=joshos
+PRETTY_NAME="joshOS 2.0 (amber-crt)"
+HOME_URL="https://joshuacarey.org"
+ANSI_COLOR="0;33"`;
+
+const AUTHLOG = `Jun  6 13:37 web sshd[42]: Accepted publickey for joshuacarey from the-web port 22
+Jun  6 13:42 web sudo: joshuacarey : command not allowed ; COMMAND=/bin/rm -rf /
+Jun  6 13:42 web sudo: pam_unix(sudo:auth): authentication failure (nice try)
+Jun  6 13:50 web CRON[1337]: (joshuacarey) CMD (ship something cool)
+Jun  6 13:55 web kernel: [amber] caffeine levels nominal`;
+
+function buildRoot(siteChildren: Record<string, FsNode>): FsNode {
+  const f = (content: string, extra: Partial<FsNode> = {}): FsNode => ({ type: 'file', content, ...extra });
+  const d = (children: Record<string, FsNode> = {}): FsNode => ({ type: 'dir', children });
+  const binset = (names: string[]) => Object.fromEntries(names.map((n) => [n, f('')]));
+
+  const home = d({
+    ...siteChildren,
+    '.bashrc': f(
+      "# ~/.bashrc — jcsh config\nalias ll='ls -la'\nalias please='sudo'\nexport EDITOR=vim\nexport CAFFEINE=high\n# the secret to good code: ship it",
+    ),
+    '.profile': f('# loaded at login\necho "stay curious."'),
+    '.config': d({
+      jcsh: d({ 'theme.conf': f('palette = amber-crt\nscanlines = on\nboot_sequence = dramatic') }),
+      '.flag': f('joshOS{amber_crt_dreams} 🏁 — you really do read everything. respect.'),
+    }),
+  });
+
+  return d({
+    bin: d(binset(['sh', 'bash', 'jcsh', 'ls', 'cat', 'cp', 'mv', 'rm'])),
+    boot: d({ 'vmjcsh-2.0': f('(binary blob — the dream loader)') }),
+    dev: d({
+      null: f(''),
+      zero: f(''),
+      random: f('4    // chosen by fair dice roll. guaranteed to be random.'),
+      dreams: f('mounted: /dev/dreams  (capacity: unlimited)'),
+    }),
+    etc: d({
+      passwd: f(PASSWD),
+      shadow: f('🔒', { locked: true }),
+      hostname: f('web'),
+      hosts: f('127.0.0.1\tlocalhost\n127.0.1.1\tweb\n::1\tlocalhost ip6-localhost'),
+      'os-release': f(OSREL),
+      motd: f('Welcome to joshOS 2.0 — where unauthorized brilliance is encouraged.'),
+      'jcsh.conf': f('greeting = "the web is yours"\nprompt = amber'),
+    }),
+    home: d({
+      [USER]: home,
+      guest: d({ 'welcome.txt': f("welcome, guest. mi terminal es su terminal.\n(don't touch the amber.)") }),
+      captain: d({ 'README.md': f('# Captain\nahoy. → https://captainapp.co.uk') }),
+      neo: d({ 'follow-the-white-rabbit.txt': f('there is no spoon. (try: matrix)') }),
+    }),
+    lib: d({ modules: d() }),
+    media: d(),
+    mnt: d(),
+    opt: d({
+      treasure: d({
+        'flag.txt': f(
+          '🏴‍☠️  X marks the spot.\nyou dug through the whole filesystem — say "amber-crt" to Josh and the coffee\'s on him. ☕',
+        ),
+      }),
+    }),
+    proc: d({
+      cpuinfo: f('model name\t: Caffeine-Powered Neuron v9\ncores\t\t: ∞\nbogomips\t: 4815.162342'),
+      meminfo: f('MemTotal:    16777216 kB\nMemFree:     stop worrying about it\nDreams:      unlimited'),
+      version: f('joshOS version 2.0 (amber-crt) (gcc 13.0) #1 SMP PREEMPT since you got here'),
+    }),
+    root: d({ '.secret': f('if you can read this, you ARE root.\n(spoiler: you are not.)') }),
+    sbin: d(),
+    srv: d(),
+    sys: d(),
+    tmp: d(),
+    usr: d({
+      bin: d(binset(['jcsh', 'ls', 'cat', 'grep', 'vim', 'curl', 'git', 'node', 'pnpm', 'snake', 'sl', 'cowsay'])),
+      games: d({ snake: f(''), sl: f('') }),
+      share: d({ 'motd.tail': f('build something cool.'), '.crumb': f('the trail continues in /opt …') }),
+      local: d({ bin: d() }),
+    }),
+    var: d({
+      log: d({
+        'auth.log': f(AUTHLOG),
+        'secrets.log': f('[REDACTED]… ok fine. the crumbs lead to /usr/share/.crumb 🍞'),
+        'jcsh.log': f('[ ok ] booted joshOS\n[ ok ] amber-crt display driver\n[ ok ] caffeine subsystem online'),
+      }),
+      www: d({ html: d({ 'index.html': f('<!-- you are already here -->') }) }),
+    }),
+  });
+}
+
 /* ---------- filesystem helpers ---------- */
 async function loadFS(): Promise<FsNode | null> {
-  if (FS) return FS;
+  if (ROOT) return ROOT;
   if (!fsPromise) {
     fsPromise = fetch('/fs.json')
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
-        FS = j;
-        return j;
+        siteData = j || { children: {} };
+        ROOT = buildRoot(siteData.children || {});
+        return ROOT;
       })
-      .catch(() => null);
+      .catch(() => {
+        siteData = { children: {} };
+        ROOT = buildRoot({});
+        return ROOT;
+      });
   }
   return fsPromise;
 }
 
 function nodeAt(segments: string[]): FsNode | null {
-  if (!FS) return null;
-  let node: FsNode = FS;
+  if (!ROOT) return null;
+  let node: FsNode = ROOT;
   for (const seg of segments) {
     if (node.type !== 'dir' || !node.children || !node.children[seg]) return null;
     node = node.children[seg];
@@ -73,6 +188,7 @@ function resolve(input: string): { segs: string[]; node: FsNode | null } {
     if (p === '' || p === '.') continue;
     if (p === '~') {
       base.length = 0;
+      base.push(...HOME);
       continue;
     }
     if (p === '..') {
@@ -84,12 +200,202 @@ function resolve(input: string): { segs: string[]; node: FsNode | null } {
   return { segs: base, node: nodeAt(base) };
 }
 
-const pretty = (segs: string[]) => '~' + (segs.length ? '/' + segs.join('/') : '');
+// '/home/joshuacarey/work' → '~/work'; everything else absolute ('/etc').
+function pretty(segs: string[]): string {
+  if (segs.length >= 2 && segs[0] === HOME[0] && segs[1] === HOME[1]) {
+    const rest = segs.slice(2);
+    return '~' + (rest.length ? '/' + rest.join('/') : '');
+  }
+  return '/' + segs.join('/');
+}
 
-/* ---------- shareable deep links (?p=blog/hello-world.md) ---------- */
+const abspath = (input: string) => '/' + resolve(input).segs.join('/');
+
+/* ---------- ls -l metadata (fabricated, but consistent) ---------- */
+function ownerOf(segs: string[]): string {
+  if (segs[0] === 'home' && segs[1]) return segs[1];
+  return 'root';
+}
+function permsOf(node: FsNode, segs: string[]): string {
+  if (node.locked) return node.type === 'dir' ? 'drwx------' : '-rw-------';
+  if (node.type === 'dir') return 'drwxr-xr-x';
+  const execish = segs[0] === 'bin' || segs[0] === 'sbin' || (segs[0] === 'usr' && (segs[1] === 'bin' || segs[1] === 'games'));
+  return execish ? '-rwxr-xr-x' : '-rw-r--r--';
+}
+const sizeOf = (node: FsNode) => (node.type === 'dir' ? 4096 : node.content ? node.content.length : 0);
+
+function longLine(name: string, node: FsNode, segs: string[]): HTMLElement {
+  const div = document.createElement('div');
+  div.className = 'term-line term-ls-l';
+  const o = ownerOf(segs);
+  div.appendChild(
+    document.createTextNode(
+      `${permsOf(node, segs)}  1 ${o.padEnd(9)} ${o.padEnd(9)} ${String(sizeOf(node)).padStart(6)} Jun  6 14:00 `,
+    ),
+  );
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'ls-entry ' + (node.type === 'dir' ? 'ls-dir' : 'ls-file');
+  b.dataset.name = name;
+  b.dataset.type = node.type;
+  b.textContent = node.type === 'dir' ? name + '/' : name;
+  div.appendChild(b);
+  return div;
+}
+
+/* ---------- mutable filesystem (mkdir/touch/rm/mv/cp/redirect) ---------- */
+// Writable areas only (like a real non-root user): your home and /tmp.
+function writable(input: string): boolean {
+  const s = resolve(input).segs;
+  return s[0] === 'tmp' || s[0] === 'home';
+}
+
+function mkdirAbs(path: string, p = false) {
+  const { segs } = resolve(path);
+  if (!segs.length) throw `cannot create directory '/'`;
+  if (p) {
+    let cur = ROOT!;
+    for (const s of segs) {
+      if (cur.type !== 'dir') throw 'not a directory';
+      cur.children = cur.children || {};
+      if (!cur.children[s]) cur.children[s] = { type: 'dir', children: {} };
+      cur = cur.children[s];
+    }
+    return;
+  }
+  const parent = nodeAt(segs.slice(0, -1));
+  const name = segs[segs.length - 1];
+  if (!parent || parent.type !== 'dir') throw `cannot create directory '${path}': No such file or directory`;
+  parent.children = parent.children || {};
+  if (parent.children[name]) throw `cannot create directory '${path}': File exists`;
+  parent.children[name] = { type: 'dir', children: {} };
+}
+function touchAbs(path: string) {
+  const { segs, node } = resolve(path);
+  if (node) return;
+  const parent = nodeAt(segs.slice(0, -1));
+  const name = segs[segs.length - 1];
+  if (!parent || parent.type !== 'dir') throw `cannot touch '${path}': No such file or directory`;
+  parent.children = parent.children || {};
+  parent.children[name] = { type: 'file', content: '' };
+}
+function writeAbs(path: string, content: string, append = false) {
+  const { segs } = resolve(path);
+  if (segs.join('/') === 'dev/null') return; // discard
+  const parent = nodeAt(segs.slice(0, -1));
+  const name = segs[segs.length - 1];
+  if (!parent || parent.type !== 'dir') throw `cannot write '${path}': No such file or directory`;
+  parent.children = parent.children || {};
+  const ex = parent.children[name];
+  if (ex && ex.type === 'dir') throw `${path}: Is a directory`;
+  const prev = append && ex?.content ? ex.content + '\n' : '';
+  parent.children[name] = { type: 'file', content: prev + content };
+}
+function rmAbs(path: string, r = false) {
+  const { segs, node } = resolve(path);
+  if (!node) throw `cannot remove '${path}': No such file or directory`;
+  if (node.type === 'dir' && !r) throw `cannot remove '${path}': Is a directory`;
+  const parent = nodeAt(segs.slice(0, -1));
+  const name = segs[segs.length - 1];
+  if (parent?.children) delete parent.children[name];
+}
+function rmdirAbs(path: string) {
+  const { segs, node } = resolve(path);
+  if (!node) throw `failed to remove '${path}': No such file or directory`;
+  if (node.type !== 'dir') throw `failed to remove '${path}': Not a directory`;
+  if (node.children && Object.keys(node.children).length) throw `failed to remove '${path}': Directory not empty`;
+  const parent = nodeAt(segs.slice(0, -1));
+  if (parent?.children) delete parent.children[segs[segs.length - 1]];
+}
+function cloneNode(n: FsNode): FsNode {
+  const c: FsNode = { type: n.type };
+  if (n.content !== undefined) c.content = n.content;
+  if (n.href) c.href = n.href;
+  if (n.meta) c.meta = n.meta;
+  if (n.img) c.img = { ...n.img };
+  if (n.children) {
+    c.children = {};
+    for (const k in n.children) c.children[k] = cloneNode(n.children[k]);
+  }
+  return c;
+}
+function placeInto(srcNode: FsNode, srcName: string, dst: string) {
+  const { segs: dsegs, node: dnode } = resolve(dst);
+  if (dnode && dnode.type === 'dir') {
+    dnode.children = dnode.children || {};
+    dnode.children[srcName] = srcNode;
+  } else {
+    const parent = nodeAt(dsegs.slice(0, -1));
+    if (!parent || parent.type !== 'dir') throw `'${dst}': No such file or directory`;
+    parent.children = parent.children || {};
+    parent.children[dsegs[dsegs.length - 1]] = srcNode;
+  }
+}
+function mvAbs(src: string, dst: string) {
+  const { segs, node } = resolve(src);
+  if (!node) throw `cannot stat '${src}': No such file or directory`;
+  const name = segs[segs.length - 1];
+  placeInto(node, name, dst);
+  const parent = nodeAt(segs.slice(0, -1));
+  if (parent?.children) delete parent.children[name];
+}
+function cpAbs(src: string, dst: string, r = false) {
+  const { segs, node } = resolve(src);
+  if (!node) throw `cannot stat '${src}': No such file or directory`;
+  if (node.type === 'dir' && !r) throw `-r not specified; omitting directory '${src}'`;
+  placeInto(cloneNode(node), segs[segs.length - 1], dst);
+}
+
+/* ---------- per-session journal (replayed on load) ---------- */
+type FsOp =
+  | { t: 'mkdir'; path: string; p?: boolean }
+  | { t: 'touch'; path: string }
+  | { t: 'write'; path: string; c: string; a?: boolean }
+  | { t: 'rm'; path: string; r?: boolean }
+  | { t: 'rmdir'; path: string }
+  | { t: 'mv'; s: string; d: string }
+  | { t: 'cp'; s: string; d: string; r?: boolean };
+let fsOps: FsOp[] = [];
+function loadOps() {
+  try {
+    fsOps = JSON.parse(localStorage.getItem(OPSKEY) || '[]');
+  } catch {
+    fsOps = [];
+  }
+}
+function saveOps() {
+  try {
+    localStorage.setItem(OPSKEY, JSON.stringify(fsOps.slice(-500)));
+  } catch {}
+}
+function pushOp(op: FsOp) {
+  fsOps.push(op);
+  saveOps();
+}
+function replayOps() {
+  for (const op of fsOps) {
+    try {
+      if (op.t === 'mkdir') mkdirAbs(op.path, !!op.p);
+      else if (op.t === 'touch') touchAbs(op.path);
+      else if (op.t === 'write') writeAbs(op.path, op.c, !!op.a);
+      else if (op.t === 'rm') rmAbs(op.path, !!op.r);
+      else if (op.t === 'rmdir') rmdirAbs(op.path);
+      else if (op.t === 'mv') mvAbs(op.s, op.d);
+      else if (op.t === 'cp') cpAbs(op.s, op.d, !!op.r);
+    } catch {}
+  }
+}
+
+/* ---------- shareable deep links (?p=writing/hello-world.md) ---------- */
 // Use the URL hash for deep links — Astro's ClientRouter manages pathname/search
 // but never touches the hash, so #p=… survives navigation/scroll.
-function setUrl(path: string) {
+// Paths are stored relative to home so links stay short and portable.
+function relHome(segs: string[]): string | null {
+  if (segs.length >= 2 && segs[0] === HOME[0] && segs[1] === HOME[1]) return segs.slice(2).join('/');
+  return null;
+}
+function setUrl(path: string | null) {
+  if (path === null) return;
   try {
     const want = path ? 'p=' + encodeURIComponent(path) : '';
     if (location.hash.replace(/^#/, '') === want) return;
@@ -106,9 +412,9 @@ function readDeepLink(): string | null {
 // Sync the terminal to a light-mode page path (called on theme toggle → dark),
 // so switching themes keeps you on the same content.
 function termSyncPath(pathname: string) {
-  if (!FS || !outEl) return;
+  if (!ROOT || !outEl) return;
   const seg = pathname.replace(/^\/+|\/+$/g, '');
-  cwd = [];
+  cwd = [...HOME];
   if (!seg) {
     updatePS1();
     return;
@@ -189,6 +495,8 @@ function setTheme(t: 'light' | 'dark') {
   document.documentElement.setAttribute('data-theme', t);
   try {
     localStorage.setItem('theme', t);
+    // session pref drives the phone default (light-first, dark per-session)
+    sessionStorage.setItem('theme', t);
   } catch {}
 }
 
@@ -213,19 +521,32 @@ const commands: Record<string, Cmd> = {
         .map(([n, c]) => '  ' + n.padEnd(10) + c.help);
       list.forEach((l) => print(l));
       print('');
-      print('navigate: cd <dir>, ls, cat <file>, open <name> · history: ↑/↓ · complete: tab', 'term-dim');
+      print('explore: cd .. up · cd / root · ls -la · tree · find -name <x> · history: ↑/↓ · tab', 'term-dim');
+      print('it’s a real shell: mkdir/touch/rm/mv/cp persist this session · `reset` to restore', 'term-dim');
     },
   },
   ls: {
-    help: 'list directory',
+    help: 'list directory (-l long, -a all)',
     run({ args, flags }) {
-      const target = args[0] ? resolve(args[0]).node : nodeAt(cwd);
-      if (!target) return void print(`ls: ${args[0]}: no such file or directory`, 'term-err');
-      if (target.type === 'file') return void print(args[0]);
-      const entries = Object.entries(target.children || {}).filter(
-        ([n]) => flags.has('a') || !n.startsWith('.'),
-      );
+      const { node: target, segs: tsegs } = args[0]
+        ? resolve(args[0])
+        : { node: nodeAt(cwd), segs: cwd };
+      if (!target) return void print(`ls: ${args[0]}: No such file or directory`, 'term-err');
+      if (target.type === 'file') {
+        if (flags.has('l')) print(longLine(args[0]!, target, tsegs));
+        else print(args[0]!);
+        return;
+      }
+      if (target.locked) return void print(`ls: cannot open directory '${args[0]}': Permission denied`, 'term-err');
+      const entries = Object.entries(target.children || {})
+        .filter(([n]) => flags.has('a') || !n.startsWith('.'))
+        .sort(([a], [b]) => a.localeCompare(b));
       if (!entries.length) return;
+      if (flags.has('l')) {
+        print(`total ${entries.length}`, 'term-dim');
+        for (const [name, node] of entries) print(longLine(name, node, [...tsegs, name]));
+        return;
+      }
       const row = document.createElement('div');
       row.className = 'term-line term-ls';
       for (const [name, node] of entries) {
@@ -245,8 +566,9 @@ const commands: Record<string, Cmd> = {
     run({ args }) {
       const dest = args[0] ?? '~';
       const { segs, node } = resolve(dest);
-      if (!node) return void print(`cd: ${dest}: no such file or directory`, 'term-err');
-      if (node.type !== 'dir') return void print(`cd: ${dest}: not a directory`, 'term-err');
+      if (!node) return void print(`cd: ${dest}: No such file or directory`, 'term-err');
+      if (node.type !== 'dir') return void print(`cd: ${dest}: Not a directory`, 'term-err');
+      if (node.locked) return void print(`cd: ${dest}: Permission denied`, 'term-err');
       cwd = segs;
       updatePS1();
     },
@@ -257,13 +579,14 @@ const commands: Record<string, Cmd> = {
     run({ args }) {
       if (!args[0]) return void print('usage: cat <file>', 'term-dim');
       const { segs, node } = resolve(args[0]);
-      if (!node) return void print(`cat: ${args[0]}: no such file`, 'term-err');
-      if (node.type === 'dir') return void print(`cat: ${args[0]}: is a directory`, 'term-err');
+      if (!node) return void print(`cat: ${args[0]}: No such file or directory`, 'term-err');
+      if (node.type === 'dir') return void print(`cat: ${args[0]}: Is a directory`, 'term-err');
+      if (node.locked) return void print(`cat: ${args[0]}: Permission denied`, 'term-err');
       const box = document.createElement('div');
       box.className = 'cat-box';
       const head = document.createElement('div');
       head.className = 'cat-head';
-      head.textContent = segs.length ? segs.join('/') : args[0];
+      head.textContent = segs.length ? pretty(segs) : args[0];
       box.appendChild(head);
       const linkRe = /(https?:\/\/[^\s]+|mailto:[^\s]+)/;
       (node.content || '').split('\n').forEach((l) => {
@@ -311,8 +634,8 @@ const commands: Record<string, Cmd> = {
         }
       });
       print(box);
-      // shareable deep-link: ?p=blog/hello-world.md
-      setUrl(segs.join('/'));
+      // shareable deep-link, but only for home content (system files aren't pages)
+      setUrl(relHome(segs));
     },
   },
   open: {
@@ -326,8 +649,37 @@ const commands: Record<string, Cmd> = {
       window.location.href = href;
     },
   },
-  whoami: { help: 'print user', run: () => print('joshuacarey') },
-  echo: { help: 'print text', run: ({ args }) => print(args.join(' ')) },
+  whoami: { help: 'print user', run: () => print(USER) },
+  echo: {
+    help: 'print text (supports > file and >> file)',
+    run({ args }) {
+      // normalise a glued redirect like ">file" into ">" "file"
+      const a = [...args];
+      for (let i = 0; i < a.length; i++) {
+        const m = /^(>>?)(.+)$/.exec(a[i]);
+        if (m) {
+          a.splice(i, 1, m[1], m[2]);
+          break;
+        }
+      }
+      const idx = a.findIndex((t) => t === '>' || t === '>>');
+      if (idx >= 0) {
+        const op = a[idx];
+        const file = a[idx + 1];
+        if (!file) return void print('echo: syntax error near `' + op + '`', 'term-err');
+        if (!writable(file)) return void print(`echo: ${file}: Permission denied`, 'term-err');
+        const content = a.slice(0, idx).join(' ');
+        try {
+          writeAbs(file, content, op === '>>');
+          pushOp({ t: 'write', path: abspath(file), c: content, a: op === '>>' });
+        } catch (e) {
+          print('echo: ' + e, 'term-err');
+        }
+        return;
+      }
+      print(args.join(' '));
+    },
+  },
   date: { help: 'current date', run: () => print(new Date().toString()) },
   clear: {
     help: 'clear the screen',
@@ -404,6 +756,425 @@ commands.about = {
   help: '',
   run: () => commands.cat.run({ args: ['about.txt'], flags: new Set() }),
 };
+
+/* ---------- mutating commands (mkdir / touch / rm / mv / cp / rmdir) ---------- */
+commands.mkdir = {
+  help: 'create a directory (-p parents)',
+  run({ args, flags }) {
+    if (!args[0]) return void print('usage: mkdir [-p] <dir>', 'term-dim');
+    const p = flags.has('p');
+    for (const a of args) {
+      if (!writable(a)) {
+        print(`mkdir: cannot create directory '${a}': Permission denied`, 'term-err');
+        continue;
+      }
+      try {
+        mkdirAbs(a, p);
+        pushOp({ t: 'mkdir', path: abspath(a), p });
+      } catch (e) {
+        print('mkdir: ' + e, 'term-err');
+      }
+    }
+  },
+};
+commands.touch = {
+  help: 'create an empty file',
+  run({ args }) {
+    if (!args[0]) return void print('usage: touch <file>', 'term-dim');
+    for (const a of args) {
+      if (!writable(a)) {
+        print(`touch: cannot touch '${a}': Permission denied`, 'term-err');
+        continue;
+      }
+      try {
+        touchAbs(a);
+        pushOp({ t: 'touch', path: abspath(a) });
+      } catch (e) {
+        print('touch: ' + e, 'term-err');
+      }
+    }
+  },
+};
+commands.rm = {
+  help: 'remove files (-r recursive)',
+  run({ args, flags }) {
+    if (!args[0]) return void print('usage: rm [-r] <path>', 'term-dim');
+    const r = flags.has('r');
+    for (const a of args) {
+      if (abspath(a) === '/') {
+        print("rm: it is dangerous to operate recursively on '/'", 'term-err');
+        print('rm: (nice try 😄) — refusing', 'term-dim');
+        continue;
+      }
+      if (!writable(a)) {
+        print(`rm: cannot remove '${a}': Permission denied`, 'term-err');
+        continue;
+      }
+      try {
+        const path = abspath(a);
+        rmAbs(a, r);
+        pushOp({ t: 'rm', path, r });
+      } catch (e) {
+        print('rm: ' + e, 'term-err');
+      }
+    }
+  },
+};
+commands.rmdir = {
+  help: 'remove an empty directory',
+  run({ args }) {
+    if (!args[0]) return void print('usage: rmdir <dir>', 'term-dim');
+    for (const a of args) {
+      if (!writable(a)) {
+        print(`rmdir: failed to remove '${a}': Permission denied`, 'term-err');
+        continue;
+      }
+      try {
+        const path = abspath(a);
+        rmdirAbs(a);
+        pushOp({ t: 'rmdir', path });
+      } catch (e) {
+        print('rmdir: ' + e, 'term-err');
+      }
+    }
+  },
+};
+commands.mv = {
+  help: 'move / rename',
+  run({ args }) {
+    if (args.length < 2) return void print('usage: mv <src> <dst>', 'term-dim');
+    const [src, dst] = args;
+    if (!writable(src)) return void print(`mv: cannot move '${src}': Permission denied`, 'term-err');
+    if (!writable(dst)) return void print(`mv: cannot move to '${dst}': Permission denied`, 'term-err');
+    try {
+      const s = abspath(src);
+      const d = abspath(dst);
+      mvAbs(src, dst);
+      pushOp({ t: 'mv', s, d });
+    } catch (e) {
+      print('mv: ' + e, 'term-err');
+    }
+  },
+};
+commands.cp = {
+  help: 'copy (-r recursive)',
+  run({ args, flags }) {
+    if (args.length < 2) return void print('usage: cp [-r] <src> <dst>', 'term-dim');
+    const [src, dst] = args;
+    const r = flags.has('r');
+    if (!writable(dst)) return void print(`cp: cannot create '${dst}': Permission denied`, 'term-err');
+    try {
+      const s = abspath(src);
+      const d = abspath(dst);
+      cpAbs(src, dst, r);
+      pushOp({ t: 'cp', s, d, r });
+    } catch (e) {
+      print('cp: ' + e, 'term-err');
+    }
+  },
+};
+commands.reset = {
+  help: 'restore the filesystem to defaults',
+  run() {
+    fsOps = [];
+    saveOps();
+    siteData && (ROOT = buildRoot(siteData.children || {}));
+    cwd = [...HOME];
+    updatePS1();
+    if (outEl) outEl.textContent = '';
+    print('filesystem restored to defaults.', 'term-amber');
+  },
+};
+
+/* ---------- read-only filesystem utilities ---------- */
+function fileLines(path: string, cmd: string): string[] | null {
+  const { node } = resolve(path);
+  if (!node) {
+    print(`${cmd}: ${path}: No such file or directory`, 'term-err');
+    return null;
+  }
+  if (node.type === 'dir') {
+    print(`${cmd}: ${path}: Is a directory`, 'term-err');
+    return null;
+  }
+  if (node.locked) {
+    print(`${cmd}: ${path}: Permission denied`, 'term-err');
+    return null;
+  }
+  return (node.content || '').split('\n');
+}
+function splitNFile(args: string[]): { n: number; file?: string } {
+  let n = 10;
+  let file: string | undefined;
+  for (const a of args) {
+    if (/^\d+$/.test(a)) n = parseInt(a, 10);
+    else if (!a.startsWith('-')) file = a;
+  }
+  return { n, file };
+}
+commands.tree = {
+  help: 'recursive directory tree',
+  run({ args }) {
+    const start = args[0] ? resolve(args[0]) : { node: nodeAt(cwd), segs: cwd };
+    if (!start.node) return void print(`tree: ${args[0]}: No such file or directory`, 'term-err');
+    print(args[0] || '.', 'tok-path');
+    let dirs = 0;
+    let files = 0;
+    const walk = (node: FsNode, prefix: string, depth: number) => {
+      if (node.type !== 'dir' || !node.children || node.locked) return;
+      const ents = Object.entries(node.children)
+        .filter(([n]) => !n.startsWith('.'))
+        .sort(([a], [b]) => a.localeCompare(b));
+      ents.forEach(([name, child], i) => {
+        const last = i === ents.length - 1;
+        print(prefix + (last ? '└── ' : '├── ') + (child.type === 'dir' ? name + '/' : name), child.type === 'dir' ? 'tok-path' : '');
+        if (child.type === 'dir') {
+          dirs++;
+          if (depth < 4) walk(child, prefix + (last ? '    ' : '│   '), depth + 1);
+        } else files++;
+      });
+    };
+    walk(start.node, '', 0);
+    print('');
+    print(`${dirs} directories, ${files} files`, 'term-dim');
+  },
+};
+commands.find = {
+  help: 'find files by name',
+  run({ args }) {
+    let path = '.';
+    let pat = '';
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-name') pat = args[++i] || '';
+      else if (path === '.' && i === 0) path = args[i];
+      else pat = args[i];
+    }
+    const start = resolve(path);
+    if (!start.node) return void print(`find: '${path}': No such file or directory`, 'term-err');
+    const needle = pat.replace(/\*/g, '');
+    const base = path === '.' ? '.' : path.replace(/\/$/, '');
+    const rec = (node: FsNode, cur: string) => {
+      const nm = cur.split('/').pop() || '';
+      if (!needle || nm.includes(needle)) print(cur);
+      if (node.type === 'dir' && node.children && !node.locked)
+        for (const [n, c] of Object.entries(node.children)) rec(c, cur + '/' + n);
+    };
+    rec(start.node, base);
+  },
+};
+commands.head = {
+  help: 'first lines of a file',
+  run({ args }) {
+    const { n, file } = splitNFile(args);
+    if (!file) return void print('usage: head [-n N] <file>', 'term-dim');
+    const ls = fileLines(file, 'head');
+    if (ls) ls.slice(0, n).forEach((l) => print(l));
+  },
+};
+commands.tail = {
+  help: 'last lines of a file',
+  run({ args }) {
+    const { n, file } = splitNFile(args);
+    if (!file) return void print('usage: tail [-n N] <file>', 'term-dim');
+    const ls = fileLines(file, 'tail');
+    if (ls) ls.slice(-n).forEach((l) => print(l));
+  },
+};
+commands.wc = {
+  help: 'count lines, words, chars',
+  run({ args }) {
+    const file = args.find((a) => !a.startsWith('-'));
+    if (!file) return void print('usage: wc <file>', 'term-dim');
+    const ls = fileLines(file, 'wc');
+    if (!ls) return;
+    const text = ls.join('\n');
+    const words = (text.match(/\S+/g) || []).length;
+    print(`${String(ls.length).padStart(4)} ${String(words).padStart(4)} ${String(text.length).padStart(5)} ${file}`);
+  },
+};
+commands.grep = {
+  help: 'search a file for a pattern',
+  run({ args }) {
+    const pos = args.filter((a) => !a.startsWith('-'));
+    const [pat, file] = pos;
+    if (!pat || !file) return void print('usage: grep <pattern> <file>', 'term-dim');
+    const ls = fileLines(file, 'grep');
+    if (!ls) return;
+    let any = false;
+    const low = pat.toLowerCase();
+    for (const l of ls) {
+      const i = l.toLowerCase().indexOf(low);
+      if (i < 0) continue;
+      any = true;
+      const div = line('', 'cat-line');
+      if (i) div.appendChild(document.createTextNode(l.slice(0, i)));
+      div.appendChild(spanEl('grep-hit', l.slice(i, i + pat.length)));
+      div.appendChild(document.createTextNode(l.slice(i + pat.length)));
+      print(div);
+    }
+    if (!any) print('');
+  },
+};
+commands.stat = {
+  help: 'file metadata',
+  run({ args }) {
+    const { node, segs } = resolve(args[0] || '');
+    if (!args[0] || !node) return void print(`stat: cannot stat '${args[0] || ''}': No such file or directory`, 'term-err');
+    print(`  File: ${args[0]}`);
+    print(`  Size: ${sizeOf(node)}\t${node.type === 'dir' ? 'directory' : 'regular file'}`);
+    print(`Access: (${permsOf(node, segs)})  Uid: (1000/${ownerOf(segs)})`);
+    print(`Modify: Jun  6 14:00:00 2026`);
+  },
+};
+commands.file = {
+  help: 'identify a file type',
+  run({ args }) {
+    const { node } = resolve(args[0] || '');
+    if (!args[0] || !node) return void print(`${args[0] || ''}: cannot open (No such file or directory)`, 'term-err');
+    if (node.type === 'dir') return void print(`${args[0]}: directory`);
+    if (node.img) return void print(`${args[0]}: image data`);
+    if (node.locked) return void print(`${args[0]}: regular file, no read permission`);
+    print(`${args[0]}: ${(node.content || '').includes('#') ? 'ASCII text, with markdown' : 'ASCII text'}`);
+  },
+};
+
+/* ---------- system info (with a little personality) ---------- */
+commands.uname = {
+  help: 'system information',
+  run({ args, flags }) {
+    if (flags.has('a') || args[0] === '-a') print('joshOS web 2.0-amber-crt #1 SMP the-web jcsh');
+    else print('joshOS');
+  },
+};
+commands.hostname = { help: 'show hostname', run: () => print('web') };
+commands.id = {
+  help: 'print user identity',
+  run: () => print(`uid=1000(${USER}) gid=1000(${USER}) groups=1000(${USER}),27(sudo),999(crew)`),
+};
+commands.groups = { help: 'group memberships', run: () => print(`${USER} sudo crew`) };
+commands.users = { help: 'list logged-in users', run: () => print(USER) };
+commands.who = { help: 'who is logged on', run: () => print(`${USER}   ttys000   just now   (the-web)`) };
+commands.w = {
+  hidden: true,
+  help: '',
+  run() {
+    print(' 14:00:00 up since you got here,  1 user,  load average: 0.42, 0.27, 0.10', 'term-dim');
+    print('USER     TTY      FROM     WHAT');
+    print(`${USER}  ttys000  the-web  jcsh`);
+  },
+};
+commands.uptime = {
+  help: 'how long the dream has run',
+  run: () => print(' 14:00:00 up since you got here,  1 user,  load average: 0.42, 0.27, 0.10'),
+};
+commands.ps = {
+  help: 'running processes',
+  run() {
+    print('  PID TTY          TIME CMD');
+    print('    1 ?        00:00:01 jcinit');
+    print('   42 ttys000  00:00:00 jcsh');
+    print(' 1337 ttys000  00:00:00 curiosity');
+    print(' 9000 ?        00:00:00 hal9000 <defunct>');
+  },
+};
+commands.free = {
+  help: 'memory usage',
+  run() {
+    print('              total        used        free');
+    print('Mem:       16777216     4096000    12681216');
+    print('Swap:             0           0           0');
+    print('(plenty of room for big ideas)', 'term-dim');
+  },
+};
+commands.df = {
+  help: 'disk free',
+  run() {
+    print('Filesystem     1K-blocks      Used Available Use% Mounted on');
+    print('/dev/dreams     999999999  42424242 957575757   5% /');
+    print('cloudflare:r2   unlimited   gallery         ∞   0% /home/joshuacarey/gallery');
+  },
+};
+commands.du = { hidden: true, help: '', run: () => print('42M\t.') };
+const ENVVARS: Record<string, string> = {
+  USER,
+  HOME: '/home/' + USER,
+  SHELL: '/usr/bin/jcsh',
+  PATH: '/usr/local/bin:/usr/bin:/bin:/usr/games',
+  TERM: 'amber-crt',
+  LANG: 'en_GB.UTF-8',
+  EDITOR: 'vim',
+  CAFFEINE: 'high',
+  HINT: 'try `cat /var/log/secrets.log`',
+};
+commands.env = {
+  help: 'environment variables',
+  run() {
+    for (const [k, v] of Object.entries(ENVVARS)) print(`${k}=${v}`);
+    print(`PWD=/${cwd.join('/')}`);
+  },
+};
+commands.printenv = { hidden: true, help: '', run: () => commands.env.run({ args: [], flags: new Set() }) };
+commands.which = {
+  help: 'locate a command',
+  run({ args }) {
+    if (!args[0]) return void print('usage: which <cmd>', 'term-dim');
+    if (commands[args[0]]) print('/usr/bin/' + args[0]);
+    else print(`which: no ${args[0]} in (${ENVVARS.PATH})`, 'term-err');
+  },
+};
+
+/* ---------- a few more easter eggs ---------- */
+commands.su = {
+  help: 'switch user',
+  run() {
+    print('Password: ');
+    setTimeout(() => {
+      print('su: Authentication failure', 'term-err');
+      print("(this isn't your machine… but make yourself at home)", 'term-dim');
+      scrollToInput();
+    }, 600);
+  },
+};
+commands.passwd = { hidden: true, help: '', run: () => print('passwd: you cannot change another dreamer’s password.', 'term-err') };
+commands.reboot = { hidden: true, help: '', run: () => print('reboot: nice try. just refresh the page 😉', 'term-dim') };
+commands.shutdown = { hidden: true, help: '', run: () => print('shutdown: the web never sleeps.', 'term-dim') };
+commands.ssh = { hidden: true, help: '', run: ({ args }) => print(`ssh: connect to host ${args[0] || '?'}: the only host that matters is right here.`, 'term-dim') };
+commands.curl = {
+  hidden: true,
+  help: '',
+  run: ({ args }) => print(args[0] ? `curl: (7) couldn't resolve '${args[0]}' from inside a dream` : 'usage: curl <url>', 'term-dim'),
+};
+commands.cowsay = {
+  hidden: true,
+  help: '',
+  run({ args }) {
+    const msg = args.join(' ') || 'moo';
+    print(' ' + '_'.repeat(msg.length + 2));
+    print('< ' + msg + ' >');
+    print(' ' + '-'.repeat(msg.length + 2));
+    [
+      '        \\   ^__^',
+      '         \\  (oo)\\_______',
+      '            (__)\\       )\\/\\',
+      '                ||----w |',
+      '                ||     ||',
+    ].forEach((l) => print(l));
+  },
+};
+commands.fortune = {
+  hidden: true,
+  help: '',
+  run() {
+    const fs = [
+      'ship it. you can refactor in prod. (kidding. mostly.)',
+      'the best code is the code you didn’t have to write.',
+      'a wild gradient appears. it is super effective.',
+      'rm -rf doubt/',
+      'amber > green. fight me.',
+    ];
+    print(fs[(history.length + (cwd.length || 1)) % fs.length], 'term-amber');
+  },
+};
 commands.gallery = { help: 'browse photos (TUI)', run: () => startGallery() };
 
 interface Commit {
@@ -425,7 +1196,7 @@ const refClass = (r: string) =>
 commands.git = {
   help: 'project history — git log --graph',
   run({ args }) {
-    const commits: Commit[] = (FS as any)?.commits || [];
+    const commits: Commit[] = siteData?.commits || [];
     if (!commits.length) return void print('git: no commits found', 'term-err');
 
     if (args[0] === 'show') {
@@ -725,7 +1496,7 @@ async function toBraille(src: string, cols = 56): Promise<string> {
 let galleryActive = false;
 function startGallery() {
   if (galleryActive) return;
-  const dir = nodeAt(['gallery']);
+  const dir = nodeAt([...HOME, 'gallery']);
   const entries = dir?.children ? Object.entries(dir.children) : [];
   const items = entries
     .map(([name, n]) => ({ name, img: n.img, href: n.href }))
@@ -1031,7 +1802,7 @@ function highlightInto(container: HTMLElement, v: string) {
     span.textContent = seg;
     if (word === 0) span.className = commands[seg] ? 'tok-cmd' : 'tok-bad';
     else if (seg.startsWith('-')) span.className = 'tok-flag';
-    else span.className = FS && resolve(seg).node ? 'tok-path' : 'tok-arg';
+    else span.className = ROOT && resolve(seg).node ? 'tok-path' : 'tok-arg';
     container.appendChild(span);
     word++;
   }
@@ -1053,10 +1824,13 @@ async function init() {
 
   lineEl = document.getElementById('term-line');
   loadHistory();
-  cwd = [];
+  cwd = [...HOME];
   await loadFS();
+  // replay this session's filesystem edits (mkdir/touch/rm/…) onto the tree
+  loadOps();
+  replayOps();
 
-  // shareable deep link: /#p=blog/hello-world.md → land straight in that file
+  // shareable deep link: /#p=writing/hello-world.md → land straight in that file
   const deep = readDeepLink();
   const deepNode = deep ? resolve(deep).node : null;
   if (deep && deepNode && deepNode.type === 'file') {
@@ -1165,6 +1939,7 @@ function welcome() {
   sw.textContent = 'Boring Mode →';
   hint.appendChild(sw);
   print(hint);
+  print('it’s a real shell — try `ls /`, `cat /etc/passwd`, `mkdir notes`. (`reset` to undo.)', 'term-dim');
   print('');
   exec('ls', false);
 }

@@ -1113,7 +1113,12 @@ a:hover {
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--bg-elev);
+  background-color: var(--bg-elev);
+  /* tiny blurred LQIP preview shows instantly; the full image fades in over it */
+  background-image: var(--lqip, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   cursor: zoom-in;
   position: relative;
   aspect-ratio: var(--ar, 3 / 2);
@@ -1134,7 +1139,20 @@ a:hover {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease;
+}
+/* blur-up: JS sets .blurup on images not yet loaded, then .is-loaded on load.
+   Without JS (or for already-cached images) the image just shows normally. */
+.gallery-item img.blurup {
+  opacity: 0;
+}
+.gallery-item img.blurup.is-loaded {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-item img.blurup {
+    opacity: 1;
+  }
 }
 .gallery-item:hover img {
   transform: scale(1.045);
@@ -1860,6 +1878,18 @@ kbd {
   display: flex;
   flex-wrap: wrap;
   gap: 0.1em 0;
+}
+/* ls -l rows: keep the fixed-width metadata column aligned */
+.term-ls-l {
+  white-space: pre;
+}
+.term-ls-l .ls-entry {
+  white-space: normal;
+}
+/* grep match highlight */
+.grep-hit {
+  color: var(--bg, #120c03);
+  background: var(--amber);
 }
 .term-dim {
   color: var(--faint);
