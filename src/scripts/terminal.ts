@@ -915,6 +915,9 @@ function renderLine() {
   let pos = inputEl.selectionStart ?? v.length;
   if (pos < 0) pos = v.length;
   lineEl.textContent = '';
+  // zero-width baseline char so the (possibly empty) line aligns with the
+  // prompt and the absolute caret sits on the same line, not below it.
+  lineEl.appendChild(document.createTextNode('​'));
   highlightInto(lineEl, v);
   const caret = document.createElement('span');
   caret.className = 'caret';
