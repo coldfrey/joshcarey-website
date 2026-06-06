@@ -184,7 +184,7 @@ const year = new Date().getFullYear();
           <span class="status-help-hint">? help</span>
         </span>
         <span class="doc-only">© {year} {SITE.name}</span>
-        <span style="display:flex;gap:1.1rem;flex-wrap:wrap">
+        <span style="display:flex;gap:1.1rem;flex-wrap:wrap;align-items:baseline">
           {
             SOCIALS.map((s) => (
               <a href={s.href} rel="me noopener" target="_blank">
@@ -192,7 +192,7 @@ const year = new Date().getFullYear();
               </a>
             ))
           }
-          <button class="theme-toggle" data-help type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">?</button>
+          <button class="footer-help" data-help type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">?</button>
         </span>
       </footer>
     </div>

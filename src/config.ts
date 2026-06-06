@@ -14,8 +14,8 @@ export const SITE = {
 export const NAV = [
   { href: '/', label: 'Home', cmd: 'cd ~' },
   { href: '/work', label: 'Work', cmd: 'git log' },
-  { href: '/gallery', label: 'Gallery', cmd: 'open ~/gallery' },
   { href: '/blog', label: 'Blog', cmd: 'ls ~/blog' },
+  { href: '/gallery', label: 'Gallery', cmd: 'open ~/gallery' },
 ];
 
 // Add / remove freely. Order is preserved.

@@ -1909,17 +1909,19 @@ html.preboot::before {
    ========================================================================= */
 .tui {
   display: grid;
-  grid-template-columns: minmax(20ch, 30ch) 1fr;
+  grid-template-columns: minmax(20ch, 28ch) 1fr;
   border: 1px solid var(--border-strong);
   border-radius: 4px;
   overflow: hidden;
   margin: 0.4em 0;
-  max-width: 64ch;
+  max-width: 72ch;
+  /* fixed height so navigating between photos never resizes/glitches */
+  height: clamp(280px, 48vh, 420px);
 }
 .tui-list {
   border-right: 1px solid var(--border-strong);
   overflow-y: auto;
-  max-height: 60vh;
+  height: 100%;
   padding: 0.3em 0;
 }
 .tui-row {
@@ -1966,18 +1968,27 @@ html.preboot::before {
   align-items: center;
   justify-content: center;
   gap: 0.7em;
-  padding: 1em;
+  padding: 0.9em;
   min-height: 0;
+  height: 100%;
 }
-.braille {
-  margin: 0;
-  font-family: var(--font-mono);
-  line-height: 1;
-  letter-spacing: 0;
-  white-space: pre;
-  color: var(--amber);
-  text-shadow: 0 0 2px rgba(255, 176, 0, 0.45);
-  font-size: clamp(5px, 1.1vw, 10px);
+/* fixed stage; the real photo is contained inside so height never changes */
+.tui-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tui-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  filter: sepia(0.32) saturate(1.2) hue-rotate(-8deg) contrast(1.04);
+  box-shadow: 0 0 30px -10px rgba(255, 176, 0, 0.3);
 }
 .tui-meta {
   font-family: var(--font-mono);
@@ -2205,4 +2216,19 @@ html.preboot::before {
 [data-theme="light"] .prose {
   font-size: 1.08rem;
   line-height: 1.78;
+}
+
+/* footer '?' help button — match the social links, baseline aligned */
+.footer-help {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+  color: var(--muted);
+  cursor: pointer;
+}
+.footer-help:hover {
+  color: var(--fg);
 }

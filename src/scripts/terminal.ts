@@ -158,6 +158,17 @@ const commands: Record<string, Cmd> = {
   help: {
     help: 'show this help',
     run() {
+      // prominent light-mode escape at the very top
+      const top = line('', 'term-dim');
+      top.append('not into the terminal? ');
+      const sw = document.createElement('button');
+      sw.type = 'button';
+      sw.className = 'term-link';
+      sw.setAttribute('data-theme-switch', '');
+      sw.textContent = 'switch to light mode →';
+      top.appendChild(sw);
+      print(top);
+      print('');
       print('available commands:', 'term-dim');
       const list = Object.entries(commands)
         .filter(([, c]) => !c.hidden)
@@ -665,13 +676,16 @@ function startGallery() {
   listEl.setAttribute('role', 'listbox');
   const previewEl = document.createElement('div');
   previewEl.className = 'tui-preview';
-  const pre = document.createElement('pre');
-  pre.className = 'braille';
-  pre.setAttribute('aria-hidden', 'true');
-  pre.textContent = 'rendering…';
+  const stageEl = document.createElement('div');
+  stageEl.className = 'tui-stage';
+  const img = document.createElement('img');
+  img.className = 'tui-img';
+  img.alt = '';
+  img.loading = 'eager';
+  stageEl.appendChild(img);
   const metaEl = document.createElement('div');
   metaEl.className = 'tui-meta';
-  previewEl.append(pre, metaEl);
+  previewEl.append(stageEl, metaEl);
   tui.append(listEl, previewEl);
 
   const rows = items.map((it, i) => {
@@ -703,25 +717,20 @@ function startGallery() {
   print(hint);
   scrollToInput();
 
-  const cache: (string | null)[] = items.map(() => null);
   let sel = 0;
 
-  async function render() {
+  function render() {
     rows.forEach((r, i) => {
       const on = i === sel;
       r.setAttribute('aria-selected', String(on));
       (r.querySelector('.tui-cur') as HTMLElement).textContent = on ? '› ' : '  ';
     });
     const it = items[sel];
+    img.src = it.img?.src || it.href || '';
     metaEl.textContent =
       `${it.img?.title || it.name}${it.img?.location ? ' · ' + it.img.location : ''}\n` +
       `${it.img ? `${it.img.w}×${it.img.h} · ${it.img.size} · ${it.img.date}` : ''}`;
     rows[sel].scrollIntoView({ block: 'nearest' });
-    if (cache[sel] == null) {
-      pre.textContent = 'rendering…';
-      cache[sel] = await toBraille(it.img?.src || it.href || '').catch(() => '(no preview)');
-    }
-    pre.textContent = cache[sel]!;
   }
   function move(d: number) {
     sel = (sel + d + items.length) % items.length;
@@ -899,8 +908,10 @@ function updatePS1() {
   if (sp) sp.textContent = p;
 }
 function scrollToInput() {
-  // Pin to the bottom SYNCHRONOUSLY so the prompt never leaves the viewport,
-  // even when Enter is held down (smooth-scroll is disabled in dark mode).
+  // Only the terminal (dark) pins to the bottom. In light mode the terminal is
+  // hidden, so scrolling the document would wrongly jump pages (e.g. Work) to
+  // the bottom on load.
+  if (document.documentElement.getAttribute('data-theme') !== 'dark') return;
   const el = document.scrollingElement || document.documentElement;
   el.scrollTop = el.scrollHeight;
 }
