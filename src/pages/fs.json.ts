@@ -15,6 +15,15 @@ interface FsNode {
   content?: string;
   meta?: string;
   hidden?: boolean;
+  img?: {
+    src: string;
+    w: number;
+    h: number;
+    size: string;
+    date: string;
+    title: string;
+    location?: string;
+  };
   children?: Record<string, FsNode>;
 }
 
@@ -66,6 +75,15 @@ Type \`help\` to look around. Try: ls, cat about.txt, cd work, gallery, snake.`;
       type: 'file',
       href: g.src,
       meta: `${g.size}  ${g.date}`,
+      img: {
+        src: g.src,
+        w: g.w,
+        h: g.h,
+        size: g.size,
+        date: g.date,
+        title: g.title,
+        location: g.location,
+      },
       content: `${g.title}\n${g.w}×${g.h} · ${g.size} · ${g.date}${g.location ? ' · ' + g.location : ''}\n\n→ ${g.src}`,
     };
   }

@@ -3,12 +3,22 @@
 // content. Pure DOM output (no emulator). Progressive enhancement: if this
 // never runs, the static terminal-styled content is still fully readable.
 
+interface GalleryImg {
+  src: string;
+  w: number;
+  h: number;
+  size: string;
+  date: string;
+  title: string;
+  location?: string;
+}
 interface FsNode {
   type: 'dir' | 'file';
   href?: string;
   content?: string;
   meta?: string;
   hidden?: boolean;
+  img?: GalleryImg;
   children?: Record<string, FsNode>;
 }
 
@@ -285,13 +295,7 @@ commands.about = {
   help: '',
   run: () => commands.cat.run({ args: ['about.txt'], flags: new Set() }),
 };
-commands.gallery = {
-  help: 'browse photos',
-  run: () => {
-    commands.cd.run({ args: ['gallery'], flags: new Set() });
-    commands.ls.run({ args: [], flags: new Set() });
-  },
-};
+commands.gallery = { help: 'browse photos (TUI)', run: () => startGallery() };
 
 /* ---------- the shell loop ---------- */
 function exec(raw: string, addHistory: boolean) {
@@ -484,6 +488,226 @@ function startSnake() {
   timer = window.setInterval(tick, 130);
 }
 
+/* ---------- gallery: amber braille TUI 🖼 ---------- */
+function loadImg(src: string): Promise<HTMLImageElement> {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = rej;
+    im.src = src;
+  });
+}
+
+// Braille (U+2800) renderer: 2×4 luminance dots per glyph, adaptive threshold.
+const BRAILLE_BITS = [0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80];
+async function toBraille(src: string, cols = 56): Promise<string> {
+  const img = await loadImg(src);
+  const ratio = img.height / img.width;
+  const rows = Math.max(1, Math.round(cols * ratio * (2 / 4) * 2));
+  const cw = cols * 2;
+  const ch = rows * 4;
+  const cvs = document.createElement('canvas');
+  cvs.width = cw;
+  cvs.height = ch;
+  const ctx = cvs.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0, cw, ch);
+  const { data } = ctx.getImageData(0, 0, cw, ch);
+  const lum = (x: number, y: number) => {
+    const i = (y * cw + x) * 4;
+    return 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+  };
+  let sum = 0;
+  for (let p = 0; p < data.length; p += 4) sum += 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+  const thresh = sum / (data.length / 4);
+  let out = '';
+  for (let gy = 0; gy < rows; gy++) {
+    for (let gx = 0; gx < cols; gx++) {
+      let bits = 0;
+      let k = 0;
+      for (let dy = 0; dy < 4; dy++)
+        for (let dx = 0; dx < 2; dx++, k++) if (lum(gx * 2 + dx, gy * 4 + dy) > thresh) bits |= BRAILLE_BITS[k];
+      out += String.fromCharCode(0x2800 + bits);
+    }
+    out += '\n';
+  }
+  return out;
+}
+
+let galleryActive = false;
+function startGallery() {
+  if (galleryActive) return;
+  const dir = nodeAt(['gallery']);
+  const entries = dir?.children ? Object.entries(dir.children) : [];
+  const items = entries
+    .map(([name, n]) => ({ name, img: n.img, href: n.href }))
+    .filter((it) => it.img || it.href);
+  if (!items.length) return void print('gallery: no photos found', 'term-err');
+
+  galleryActive = true;
+  inputEl?.blur();
+
+  const tui = document.createElement('div');
+  tui.className = 'tui';
+  const listEl = document.createElement('div');
+  listEl.className = 'tui-list';
+  listEl.setAttribute('role', 'listbox');
+  const previewEl = document.createElement('div');
+  previewEl.className = 'tui-preview';
+  const pre = document.createElement('pre');
+  pre.className = 'braille';
+  pre.setAttribute('aria-hidden', 'true');
+  pre.textContent = 'rendering…';
+  const metaEl = document.createElement('div');
+  metaEl.className = 'tui-meta';
+  previewEl.append(pre, metaEl);
+  tui.append(listEl, previewEl);
+
+  const rows = items.map((it, i) => {
+    const r = document.createElement('button');
+    r.type = 'button';
+    r.className = 'tui-row';
+    r.dataset.i = String(i);
+    r.setAttribute('role', 'option');
+    const cur = document.createElement('span');
+    cur.className = 'tui-cur';
+    cur.textContent = '  ';
+    const nm = document.createElement('span');
+    nm.className = 'tui-name';
+    nm.textContent = it.name;
+    const sz = document.createElement('span');
+    sz.className = 'tui-size';
+    sz.textContent = it.img?.size || '';
+    const dt = document.createElement('span');
+    dt.className = 'tui-date';
+    dt.textContent = it.img?.date || '';
+    r.append(cur, nm, sz, dt);
+    listEl.appendChild(r);
+    return r;
+  });
+
+  print(tui);
+  const hint = line('', 'term-dim');
+  hint.textContent = '  j/k or ↑/↓ move · enter open · q quit · (or click a photo)';
+  print(hint);
+  scrollToInput();
+
+  const cache: (string | null)[] = items.map(() => null);
+  let sel = 0;
+
+  async function render() {
+    rows.forEach((r, i) => {
+      const on = i === sel;
+      r.setAttribute('aria-selected', String(on));
+      (r.querySelector('.tui-cur') as HTMLElement).textContent = on ? '› ' : '  ';
+    });
+    const it = items[sel];
+    metaEl.textContent =
+      `${it.img?.title || it.name}${it.img?.location ? ' · ' + it.img.location : ''}\n` +
+      `${it.img ? `${it.img.w}×${it.img.h} · ${it.img.size} · ${it.img.date}` : ''}`;
+    rows[sel].scrollIntoView({ block: 'nearest' });
+    if (cache[sel] == null) {
+      pre.textContent = 'rendering…';
+      cache[sel] = await toBraille(it.img?.src || it.href || '').catch(() => '(no preview)');
+    }
+    pre.textContent = cache[sel]!;
+  }
+  function move(d: number) {
+    sel = (sel + d + items.length) % items.length;
+    render();
+  }
+  function quit() {
+    galleryActive = false;
+    document.removeEventListener('keydown', key, true);
+    print('', '');
+    inputEl?.focus();
+    scrollToInput();
+  }
+  function key(e: KeyboardEvent) {
+    const k = e.key;
+    if (k === 'j' || k === 'ArrowDown') move(1);
+    else if (k === 'k' || k === 'ArrowUp') move(-1);
+    else if (k === 'Enter' || k === 'l') openPhoto(items, sel);
+    else if (k === 'q' || k === 'Escape') quit();
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  listEl.addEventListener('click', (e) => {
+    const r = (e.target as HTMLElement).closest('.tui-row') as HTMLElement | null;
+    if (!r) return;
+    sel = Number(r.dataset.i);
+    render();
+    openPhoto(items, sel);
+  });
+  document.addEventListener('keydown', key, true);
+  render();
+}
+
+type Photo = { name: string; img?: GalleryImg; href?: string };
+function openPhoto(items: Photo[], start: number) {
+  let i = start;
+  const ov = document.createElement('div');
+  ov.className = 'photo-overlay';
+  const frame = document.createElement('div');
+  frame.className = 'photo-frame';
+  const stage = document.createElement('div');
+  stage.className = 'photo-stage';
+  const img = document.createElement('img');
+  img.className = 'photo-img';
+  img.alt = '';
+  stage.appendChild(img);
+  const cap = document.createElement('div');
+  cap.className = 'photo-cap';
+  const hint = document.createElement('div');
+  hint.className = 'photo-hint';
+  hint.textContent = '← → navigate · esc / click to close';
+  frame.append(stage, cap);
+  ov.append(frame, hint);
+  document.body.appendChild(ov);
+
+  const show = () => {
+    const it = items[i];
+    const src = it.img?.src || it.href || '';
+    const go = () => {
+      img.src = src;
+      cap.textContent = it.img
+        ? `${it.img.title} — ${it.img.w}×${it.img.h} · ${it.img.size} · ${it.img.date}`
+        : it.name;
+    };
+    if ((document as any).startViewTransition && !reduceMotionT()) {
+      img.style.viewTransitionName = 'photo';
+      (document as any).startViewTransition(go);
+    } else go();
+  };
+  const close = () => {
+    document.removeEventListener('keydown', key, true);
+    ov.remove();
+    inputEl?.focus();
+  };
+  const key = (e: KeyboardEvent) => {
+    const k = e.key;
+    if (k === 'ArrowRight') i = (i + 1) % items.length;
+    else if (k === 'ArrowLeft') i = (i - 1 + items.length) % items.length;
+    else if (k === 'Escape' || k === 'q') return close();
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+    show();
+  };
+  ov.addEventListener('click', (e) => {
+    if (e.target === img) {
+      i = (i + 1) % items.length;
+      show();
+    } else close();
+  });
+  document.addEventListener('keydown', key, true);
+  show();
+}
+
+function reduceMotionT() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 /* ---------- history persistence ---------- */
 function loadHistory() {
   try {
@@ -583,7 +807,8 @@ async function init() {
     const entry = target.closest('.ls-entry') as HTMLElement | null;
     if (entry) {
       const name = entry.dataset.name!;
-      if (entry.dataset.type === 'dir') exec('cd ' + name, false), exec('ls', false);
+      if (name === 'gallery') exec('gallery', false);
+      else if (entry.dataset.type === 'dir') exec('cd ' + name, false), exec('ls', false);
       else exec('cat ' + name, false);
       return;
     }
