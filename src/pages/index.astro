@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import Prompt from '../components/Prompt.astro';
 import { getCollection } from 'astro:content';
 import { work } from '../data/work';
-import { SITE, SOCIALS } from '../config';
+import { SITE } from '../config';
 
 const posts = (await getCollection('blog'))
   .filter((p) => !p.data.draft)
@@ -59,20 +59,6 @@ const selectedWork = work.slice(0, 3);
       <li><a href="/gallery">gallery/</a></li>
       <li><span class="dir-file">about.txt</span></li>
     </ul>
-  </section>
-
-  {/* ---- socials ---- */}
-  <section class="block">
-    <Prompt cmd="cat ~/.contacts" class="term-only" />
-    <div class="socials out">
-      {
-        SOCIALS.map((s) => (
-          <a href={s.href} rel="me noopener" target="_blank">
-            {s.label}
-          </a>
-        ))
-      }
-    </div>
   </section>
 
   {/* ---- selected work + recent writing (light only) ---- */}
