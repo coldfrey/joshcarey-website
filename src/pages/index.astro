@@ -1,7 +1,17 @@
 ---
 import Base from '../layouts/Base.astro';
 import Prompt from '../components/Prompt.astro';
+import { getCollection } from 'astro:content';
+import { work } from '../data/work';
 import { SITE, SOCIALS } from '../config';
+
+const posts = (await getCollection('blog'))
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+const fmt = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+const selectedWork = work.slice(0, 3);
 ---
 
 <Base>
@@ -66,4 +76,45 @@ import { SITE, SOCIALS } from '../config';
       }
     </div>
   </section>
+
+  {/* ---- recent writing + selected work (light only) ---- */}
+  <div class="home-grid doc-only">
+    <section>
+      <p class="eyebrow">Writing</p>
+      <ul class="mini-list">
+        {
+          posts.map((post) => (
+            <li>
+              <a href={`/blog/${post.id}/`}>
+                <span class="mini-title">{post.data.title}</span>
+                <time class="mini-date">{fmt(post.data.date)}</time>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="more-link" href="/blog">All writing →</a>
+    </section>
+
+    <section>
+      <p class="eyebrow">Selected work</p>
+      <ul class="mini-list">
+        {
+          selectedWork.map((item) => (
+            <li>
+              <a
+                href={item.href && item.href !== '#' ? item.href : '/work'}
+                target={item.href && item.href.startsWith('http') ? '_blank' : undefined}
+                rel={item.href && item.href.startsWith('http') ? 'noopener' : undefined}
+              >
+                <span class="mini-title">{item.title}</span>
+                <time class="mini-date">{item.date}</time>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="more-link" href="/work">All work →</a>
+    </section>
+  </div>
 </Base>

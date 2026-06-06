@@ -2115,3 +2115,77 @@ html.preboot::before {
 .cat-line {
   color: var(--fg);
 }
+
+/* =========================================================================
+   Home — recent writing + selected work (light)
+   ========================================================================= */
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem 3.5rem;
+  margin-top: 3.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 600px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+.mini-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 1rem;
+}
+.mini-list li + li {
+  border-top: 1px solid var(--border);
+}
+.mini-list a {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  text-decoration: none;
+  color: inherit;
+}
+.mini-title {
+  color: var(--fg);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.mini-list a:hover .mini-title {
+  color: var(--accent);
+}
+.mini-date {
+  color: var(--faint);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.more-link {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.more-link:hover {
+  color: var(--accent);
+}
+
+/* more confident hero */
+.hero {
+  gap: 1.5rem;
+  margin-bottom: 2.25rem;
+}
+.hero .avatar {
+  width: 88px;
+  height: 88px;
+}
+.hero h1 {
+  font-size: var(--step-5);
+  letter-spacing: var(--tracking-tighter);
+}
