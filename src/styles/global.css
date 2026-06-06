@@ -195,21 +195,71 @@ body {
 .term-dots {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
-.term-dots span {
+/* real, clickable macOS traffic lights */
+.term-dots .dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  display: inline-block;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.18);
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
-.term-dots span:nth-child(1) {
+.dot-close {
   background: #ff5f57;
 }
-.term-dots span:nth-child(2) {
+.dot-min {
   background: #febc2e;
 }
-.term-dots span:nth-child(3) {
+.dot-zoom {
   background: #28c840;
+}
+/* glyphs (✕ − +) — hidden until you hover the cluster, like real macOS */
+.term-dots .dot::before {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.82);
+  /* a touch of weight so the strokes read bold even at 11px */
+  -webkit-text-stroke: 0.4px rgba(0, 0, 0, 0.82);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.dot-close::before {
+  content: "✕";
+  font-size: 10px;
+}
+.dot-min::before {
+  content: "–";
+  transform: translateY(-0.5px);
+}
+.dot-zoom::before {
+  content: "+";
+}
+.term-dots:hover .dot::before,
+.term-dots .dot:focus-visible::before {
+  opacity: 1;
+}
+.term-dots .dot:hover {
+  filter: brightness(1.12);
+}
+.term-dots .dot:active {
+  transform: scale(0.9);
+}
+.term-dots .dot:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
 .term-title {
   flex: 1;

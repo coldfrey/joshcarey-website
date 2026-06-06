@@ -435,6 +435,14 @@ function onKey(e: KeyboardEvent) {
 /* ---------------- click delegation ---------------- */
 function onClick(e: MouseEvent) {
   const t = e.target as HTMLElement;
+  // macOS traffic lights in the terminal title bar
+  const win = t.closest<HTMLElement>('[data-win]');
+  if (win) {
+    const kind = win.dataset.win;
+    if (kind === 'close') return toggleTheme(); // red → exit terminal → light
+    if (kind === 'min') return void (window as any).__termClear?.(); // yellow → clear
+    if (kind === 'zoom') return setTermFont(termFont >= 20 ? 16 : 22); // green → toggle size
+  }
   if (t.closest('#theme-toggle')) return toggleTheme();
   if (t.closest('[data-theme-switch]')) return toggleTheme();
   if (t.closest('[data-lb-close]')) return closeLightbox();

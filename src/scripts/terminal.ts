@@ -1912,6 +1912,11 @@ async function init() {
   }
 
   (window as any).__termSyncPath = termSyncPath;
+  // exposed for the title-bar traffic lights (yellow = minimize → clear screen)
+  (window as any).__termClear = () => {
+    if (outEl) outEl.textContent = '';
+    inputEl?.focus();
+  };
 
   if (!TOUCH && document.documentElement.getAttribute('data-theme') === 'dark') {
     setTimeout(() => inputEl?.focus(), 60);

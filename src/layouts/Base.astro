@@ -153,9 +153,26 @@ const year = new Date().getFullYear();
   <body>
     <div class="term-window">
       <div class="term-titlebar">
-        <span class="term-dots" aria-hidden="true"
-          ><span></span><span></span><span></span></span
-        >
+        <span class="term-dots">
+          <button
+            type="button"
+            class="dot dot-close"
+            data-win="close"
+            aria-label="Close — back to light mode"
+            title="Close (back to light mode)"></button>
+          <button
+            type="button"
+            class="dot dot-min"
+            data-win="min"
+            aria-label="Minimize — clear the screen"
+            title="Minimize (clear)"></button>
+          <button
+            type="button"
+            class="dot dot-zoom"
+            data-win="zoom"
+            aria-label="Zoom — toggle text size"
+            title="Zoom (toggle text size)"></button>
+        </span>
         <span class="term-title" aria-hidden="true"
           >{SITE.handle}@web: {termPath} — zsh</span
         >
