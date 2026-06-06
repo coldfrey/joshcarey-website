@@ -1,10 +1,10 @@
 // Edit these in one place — used across the site.
 export const SITE = {
-  name: 'Josh Carey',
-  title: 'Josh Carey',
-  description: 'Personal site of Josh Carey — work, writing, and notes.',
+  name: 'Joshua Carey',
+  title: 'Joshua Carey',
+  description: 'Personal site of Joshua Carey — work, writing, and notes.',
   email: 'josh.fwh.carey@gmail.com',
-  handle: 'joshcarey', // terminal user (joshcarey@web)
+  handle: 'joshuacarey', // terminal user (joshuacarey@web)
   // The avatar lives in /public. Drop your photo at public/profile.jpg.
   // Falls back to the placeholder if missing.
   avatar: '/profile.jpg',

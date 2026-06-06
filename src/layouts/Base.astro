@@ -46,7 +46,9 @@ const year = new Date().getFullYear();
     <meta property="og:url" content={Astro.url.href} />
     <meta name="twitter:card" content="summary" />
     <meta name="generator" content={Astro.generator} />
-    <!-- Resolve theme before paint: stored pref → system → light. -->
+    <!-- Resolve theme before paint: stored pref → system → light.
+         If dark, add `preboot` so an opaque CRT cover paints BEFORE the
+         terminal is ever visible; JS runs the boot sequence then clears it. -->
     <script is:inline>
       (function () {
         try {
@@ -57,8 +59,22 @@ const year = new Date().getFullYear();
               : 'light';
           }
           document.documentElement.setAttribute('data-theme', t);
+          if (t === 'dark' && !sessionStorage.getItem('booted')) {
+            document.documentElement.classList.add('preboot');
+          }
         } catch (e) {}
       })();
+    </script>
+    <script is:inline>
+      document.addEventListener('astro:after-swap', () => {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      });
     </script>
     <ClientRouter />
   </head>
@@ -126,11 +142,28 @@ const year = new Date().getFullYear();
 
       <main>
         <slot />
-        <p class="cmd-line term-only" aria-hidden="true">
-          <span class="usr">{SITE.handle}@web</span><span class="path"
-            >:{termPath}</span
-          ><span class="dollar">$</span><span class="cursor"></span>
-        </p>
+        {/* live interactive shell (dark mode only) */}
+        <div id="terminal" class="terminal-live term-only">
+          <div id="term-out"></div>
+          <form id="term-form" autocomplete="off">
+            <label class="term-ps1" for="term-input"
+              ><span class="usr">{SITE.handle}@web</span><span
+                class="path term-cwd">:{termPath}</span
+              ><span class="dollar">$</span></label
+            >
+            <input
+              id="term-input"
+              class="term-input"
+              type="text"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              aria-label="terminal input"
+            />
+            <span class="term-caret" aria-hidden="true"></span>
+          </form>
+        </div>
       </main>
 
       <footer class="site-footer">
@@ -172,6 +205,7 @@ const year = new Date().getFullYear();
 
     <script>
       import '../scripts/site.ts';
+      import '../scripts/terminal.ts';
     </script>
   </body>
 </html>

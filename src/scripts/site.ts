@@ -76,44 +76,69 @@ function initTermFont() {
   applyTermFont(v);
 }
 
-function playBoot(done: () => void) {
+let booting = false;
+function playBoot(done?: () => void) {
+  if (booting) return;
+  booting = true;
+  const root = document.documentElement;
+  // Opaque overlay appended FIRST so it covers the terminal before anything
+  // is visible (no flash of the terminal behind a "powering on" reveal).
   const overlay = document.createElement('div');
   overlay.className = 'crt-boot';
   const pre = document.createElement('pre');
   overlay.appendChild(pre);
   document.body.appendChild(overlay);
+  root.classList.remove('preboot');
+  try { sessionStorage.setItem('booted', '1'); } catch {}
+
+  const finish = () => {
+    overlay.classList.add('off');
+    window.setTimeout(() => {
+      overlay.remove();
+      booting = false;
+      done && done();
+    }, 340);
+  };
 
   const lines = [
-    'booting joshOS v2.0 …',
-    'mounting /work /blog /gallery',
-    'loading theme: amber-crt',
-    'type `?` for keyboard shortcuts',
+    'joshOS 2.0  (c) 2026 joshuacarey',
+    'POST … memory OK',
+    'mounting /  →  about.txt work/ blog/ gallery/',
+    'loading theme: amber-crt … ok',
+    "type `help` or `ls`. press `?` for shortcuts.",
     'ready.',
   ];
+
+  if (reduceMotion()) {
+    pre.textContent = lines.join('\n');
+    window.setTimeout(finish, 350);
+    return;
+  }
   let i = 0;
   const tick = () => {
     if (i < lines.length) {
       pre.textContent += lines[i] + '\n';
       i++;
-      window.setTimeout(tick, 120);
+      window.setTimeout(tick, 105);
     } else {
-      window.setTimeout(() => {
-        overlay.classList.add('off');
-        window.setTimeout(() => overlay.remove(), 320);
-        done();
-      }, 240);
+      window.setTimeout(finish, 240);
     }
   };
   tick();
 }
 
+function focusTerminal() {
+  const el = document.getElementById('term-input') as HTMLInputElement | null;
+  el?.focus();
+}
+
 function toggleTheme() {
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
-  if (next === 'dark' && !reduceMotion()) {
+  if (next === 'dark') {
     applyTheme('dark');
-    playBoot(() => {});
+    playBoot(focusTerminal);
   } else {
-    applyTheme(next);
+    applyTheme('light');
   }
 }
 
@@ -342,6 +367,10 @@ function onClick(e: MouseEvent) {
 
 function init() {
   initTermFont();
+  // Boot sequence on a fresh dark load (the head added `preboot`).
+  if (document.documentElement.classList.contains('preboot')) {
+    playBoot(focusTerminal);
+  }
   if (window.__siteInit) return;
   window.__siteInit = true;
   document.addEventListener('click', onClick);

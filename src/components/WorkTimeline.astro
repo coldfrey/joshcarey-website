@@ -80,26 +80,17 @@ const typeOf = (item: WorkItem) =>
               <span class="graph">*</span>
               <span class="hash">{hash}</span>
               {refs.length > 0 && (
-                <span class="decorate">
-                  (
-                  {refs.map((r, j) => (
-                    <>
-                      {j > 0 && <span class="sep">, </span>}
-                      <span
-                        class={
-                          r.startsWith('tag:')
-                            ? 'ref-tag'
-                            : r.startsWith('HEAD')
-                              ? 'ref-head'
-                              : 'ref-branch'
-                        }
-                      >
-                        {r}
-                      </span>
-                    </>
-                  ))}
-                  )
-                </span>
+                <span class="decorate">({refs.map((r, j) => (
+                  <span
+                    class={
+                      r.startsWith('tag:')
+                        ? 'ref-tag'
+                        : r.startsWith('HEAD')
+                          ? 'ref-head'
+                          : 'ref-branch'
+                    }
+                  >{j > 0 ? ', ' : ''}{r}</span>
+                ))})</span>
               )}
               <span class="subject">
                 <span class="ctype">{typeOf(item)}:</span> {item.title}
@@ -129,7 +120,7 @@ const typeOf = (item: WorkItem) =>
                 </p>
                 <p class="cb-line">
                   <span class="graph">│</span>
-                  <span class="cb-meta">Author: Josh Carey</span>
+                  <span class="cb-meta">Author: Joshua Carey</span>
                 </p>
                 <p class="cb-line">
                   <span class="graph">│</span>
