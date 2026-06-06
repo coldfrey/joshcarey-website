@@ -34,6 +34,7 @@ export const work: WorkItem[] = [
     range: '2024 — 2025',
     status: 'shipped',
     tag: 'YC W25',
+    href: 'https://www.sammylabs.com',
     stack: ['Python', 'TypeScript', 'LLMs', 'GCP'],
   },
   {
@@ -43,6 +44,7 @@ export const work: WorkItem[] = [
     date: '2024',
     range: '2021 — 2024',
     status: 'shipped',
+    href: 'https://captainapp.co.uk',
     stack: ['Flutter', 'GCP', 'AWS'],
   },
   {
