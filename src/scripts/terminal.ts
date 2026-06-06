@@ -1088,14 +1088,28 @@ async function init() {
     }
   });
 
-  // The WHOLE terminal window is clickable to focus the prompt (like a real
-  // terminal) — except on links/buttons/files, or when selecting text.
+  // The WHOLE terminal window is clickable/tappable to focus the prompt (like a
+  // real terminal) and — crucially on mobile — to pop up the soft keyboard.
+  // iOS/Android only raise the keyboard when focus() runs *synchronously* inside
+  // a user gesture, so we focus directly in the tap handler (no setTimeout) and
+  // listen on `click` (which fires for both mouse and touch and is the gesture
+  // browsers trust for programmatic focus).
   const win = document.querySelector('.term-window');
-  win?.addEventListener('mousedown', (e) => {
+  const focusFromTap = (e: Event) => {
+    if (document.documentElement.getAttribute('data-theme') !== 'dark') return;
     const t = e.target as HTMLElement;
-    if (t.closest('a, button, .ls-entry, input')) return;
+    if (t.closest('a, button, .ls-entry, input, .tui')) return;
     if (window.getSelection()?.toString()) return;
-    setTimeout(() => inputEl?.focus({ preventScroll: true }), 0);
+    inputEl?.focus({ preventScroll: true });
+  };
+  win?.addEventListener('click', focusFromTap);
+  // pointerup gives desktop the instant-focus feel without waiting for click
+  win?.addEventListener('pointerup', (e) => {
+    if ((e as PointerEvent).pointerType === 'mouse') focusFromTap(e);
+  });
+  // When the keyboard opens it shrinks the viewport; keep the prompt in view.
+  inputEl.addEventListener('focus', () => {
+    setTimeout(scrollToInput, 250);
   });
 
   (window as any).__termSyncPath = termSyncPath;

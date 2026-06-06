@@ -14,7 +14,7 @@ export const SITE = {
 export const NAV = [
   { href: '/', label: 'Home', cmd: 'cd ~' },
   { href: '/work', label: 'Work', cmd: 'git log' },
-  { href: '/blog', label: 'Blog', cmd: 'ls ~/blog' },
+  { href: '/blog', label: 'Writing', cmd: 'ls ~/blog' },
   { href: '/gallery', label: 'Gallery', cmd: 'open ~/gallery' },
 ];
 

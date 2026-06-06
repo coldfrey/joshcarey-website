@@ -47,18 +47,26 @@ const year = new Date().getFullYear();
     <meta property="og:url" content={Astro.url.href} />
     <meta name="twitter:card" content="summary" />
     <meta name="generator" content={Astro.generator} />
-    <!-- Resolve theme before paint: stored pref → system → light.
-         If dark, add `preboot` so an opaque CRT cover paints BEFORE the
-         terminal is ever visible; JS runs the boot sequence then clears it. -->
+    <!-- Resolve theme before paint: explicit stored pref wins; otherwise
+         desktop follows system, but PHONES default to light (the terminal is a
+         desktop-first experience). If dark, add `preboot` so an opaque CRT cover
+         paints BEFORE the terminal is visible; JS runs the boot then clears it. -->
     <script is:inline>
+      window.__resolveTheme = function () {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') return t;
+        // No explicit choice: small / coarse-pointer devices → light.
+        var phone =
+          window.matchMedia('(max-width: 640px)').matches ||
+          window.matchMedia('(pointer: coarse)').matches;
+        if (phone) return 'light';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+      };
       (function () {
         try {
-          var t = localStorage.getItem('theme');
-          if (t !== 'light' && t !== 'dark') {
-            t = window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
-          }
+          var t = window.__resolveTheme();
           document.documentElement.setAttribute('data-theme', t);
           if (t === 'dark' && !sessionStorage.getItem('booted')) {
             document.documentElement.classList.add('preboot');
@@ -69,11 +77,7 @@ const year = new Date().getFullYear();
     <script is:inline>
       document.addEventListener('astro:after-swap', () => {
         try {
-          var t = localStorage.getItem('theme');
-          if (t !== 'light' && t !== 'dark') {
-            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
-          document.documentElement.setAttribute('data-theme', t);
+          document.documentElement.setAttribute('data-theme', window.__resolveTheme());
         } catch (e) {}
       });
     </script>
@@ -202,7 +206,7 @@ const year = new Date().getFullYear();
       <h2>Keyboard shortcuts</h2>
       <div class="help-grid">
         <kbd>t</kbd><span>toggle light / terminal</span>
-        <kbd>g</kbd> <span>then <kbd>h</kbd> <kbd>w</kbd> <kbd>g</kbd> <kbd>b</kbd> — go home / work / gallery / blog</span>
+        <kbd>g</kbd> <span>then <kbd>h</kbd> <kbd>w</kbd> <kbd>g</kbd> <kbd>b</kbd> — go home / work / gallery / writing</span>
         <kbd>1</kbd>–<kbd>4</kbd><span>jump to nav items</span>
         <kbd>j</kbd> / <kbd>k</kbd><span>move down / up (rows &amp; commits)</span>
         <kbd>↵</kbd><span>open photo · expand commit (git show)</span>

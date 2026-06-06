@@ -155,9 +155,10 @@ body {
    Terminal window shell
    ========================================================================= */
 .term-window {
+  --pad: 1.5rem;
   max-width: var(--measure);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 var(--pad);
 }
 
 [data-theme="dark"] .term-window {
@@ -1713,6 +1714,9 @@ kbd {
   background: none;
   caret-color: transparent;
   font: inherit;
+  /* >=16px stops iOS Safari from zooming the page when the field is focused
+     (it's invisible, so the size has no visual effect) */
+  font-size: max(16px, 1em);
   pointer-events: none;
   z-index: -1;
 }
