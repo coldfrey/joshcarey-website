@@ -838,19 +838,7 @@ a:hover {
   transform-origin: top;
   transform: scaleY(1);
 }
-@supports (animation-timeline: view()) {
-  .timeline::after {
-    transform: scaleY(0);
-    animation: tl-fill linear both;
-    animation-timeline: view();
-    animation-range: cover 0% cover 78%;
-  }
-  @keyframes tl-fill {
-    to {
-      transform: scaleY(1);
-    }
-  }
-}
+/* (spine is static — no scroll-driven fill) */
 
 .tl-entry {
   position: relative;
@@ -984,21 +972,7 @@ a:hover {
   padding: 0.1rem 0.5rem;
 }
 
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .tl-entry {
-      animation: tl-reveal linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 45%;
-    }
-    @keyframes tl-reveal {
-      from {
-        opacity: 0;
-        transform: translateY(22px);
-      }
-    }
-  }
-}
+/* (timeline entries are static — no scroll-triggered reveal) */
 
 /* =========================================================================
    WORK — dark git log --graph
@@ -1169,21 +1143,7 @@ a:hover {
   opacity: 0.8;
 }
 
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .gallery-item {
-      animation: gi-reveal linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 35%;
-    }
-    @keyframes gi-reveal {
-      from {
-        opacity: 0;
-        transform: translateY(28px);
-      }
-    }
-  }
-}
+/* (gallery items are static — no scroll-triggered reveal) */
 
 /* =========================================================================
    GALLERY — dark ls -lh listing
