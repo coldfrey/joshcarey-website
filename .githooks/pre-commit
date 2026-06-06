@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Uploads new/changed images in media-src/ to Cloudflare R2 before each commit,
+# then stages the updated manifest. Bypass with: git commit --no-verify
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+bash "$root/scripts/sync-media-to-r2.sh"
+git add "$root/.r2-media-manifest" 2>/dev/null || true

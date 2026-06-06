@@ -1,3 +1,9 @@
+// Public base URL for gallery media hosted on Cloudflare R2 (bucket
+// `joshuacarey-gallery`). Originals live in media-src/ and are pushed to R2 by
+// the pre-commit hook; reference them as `${MEDIA_BASE}/<filename>`.
+// TODO: swap to https://media.joshuacarey.org once the R2 custom domain is added.
+export const MEDIA_BASE = 'https://pub-9ec0054b913c4c4f9b29a27db73c9539.r2.dev';
+
 // Edit these in one place — used across the site.
 export const SITE = {
   name: 'Joshua Carey',

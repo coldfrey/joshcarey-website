@@ -9,7 +9,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "deploy": "astro build && wrangler pages deploy dist"
+    "deploy": "astro build && wrangler pages deploy dist",
+    "media:sync": "bash scripts/sync-media-to-r2.sh",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.11",
