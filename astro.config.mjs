@@ -2,8 +2,9 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-// Update this to your custom domain once DNS is pointed at Cloudflare Pages.
-const SITE = 'https://joshcarey.dev';
+// Custom domain (Cloudflare Registrar + Pages). Drives sitemap, canonical URLs,
+// and absolute OG/JSON-LD links — keep it in sync with the live domain.
+const SITE = 'https://joshuacarey.org';
 
 // https://astro.build/config
 export default defineConfig({

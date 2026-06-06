@@ -14,6 +14,49 @@ interface Props {
 const { title, description = SITE.description } = Astro.props;
 const pageTitle = title ? `${title} · ${SITE.name}` : SITE.title;
 
+// Absolute canonical URL for this page (uses configured `site`).
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+// JSON-LD Person schema — gives search engines + AI answer engines a structured,
+// authoritative profile to cite when people look for an AI engineer / strategist.
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: SITE.name,
+  url: Astro.site?.href,
+  image: new URL(SITE.avatarFallback, Astro.site).href,
+  jobTitle: 'AI Engineer & Digital Transformation Lead',
+  description:
+    'AI engineer and strategist building production LLM applications and autonomous agents — leading AI & digital transformation in the superyacht industry.',
+  worksFor: {
+    '@type': 'Organization',
+    name: 'Cecil Wright & Partners',
+    url: 'https://www.cecilwright.com',
+    description: 'Boutique superyacht brokerage',
+  },
+  alumniOf: {
+    '@type': 'CollegeOrUniversity',
+    name: 'University of Bristol',
+  },
+  knowsAbout: [
+    'Artificial Intelligence',
+    'AI Engineering',
+    'Large Language Models',
+    'LLM Applications',
+    'AI Agents',
+    'AI Strategy',
+    'Machine Learning',
+    'Reinforcement Learning',
+    'Superyacht Technology',
+    'Digital Transformation',
+    'Full-Stack Software Engineering',
+    'Python',
+    'TypeScript',
+  ],
+  knowsLanguage: 'en',
+  sameAs: SOCIALS.filter((s) => s.href.startsWith('http')).map((s) => s.href),
+};
+
 const path = Astro.url.pathname;
 const isCurrent = (href: string) =>
   href === '/' ? path === '/' : path.startsWith(href);
@@ -31,6 +74,7 @@ const year = new Date().getFullYear();
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link
       rel="alternate"
@@ -42,11 +86,20 @@ const year = new Date().getFullYear();
     <meta name="description" content={description} />
     <meta name="author" content={SITE.name} />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.name} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary" />
+    <meta name="twitter:creator" content="@joshuacarey_" />
     <meta name="generator" content={Astro.generator} />
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(personSchema)}
+    />
+    <!-- AI answer engines & agents: see /agents.txt and /llms.txt -->
+    <link rel="llms" href="/llms.txt" />
     <!-- Resolve theme before paint: explicit stored pref wins; otherwise
          desktop follows system, but PHONES default to light (the terminal is a
          desktop-first experience). If dark, add `preboot` so an opaque CRT cover
