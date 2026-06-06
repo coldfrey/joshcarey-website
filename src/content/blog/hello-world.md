@@ -1,10 +1,10 @@
 ---
 title: Hello, world
-description: The first post on my new site — and how this blog works.
+description: The first post on my new site — and how the writing here works.
 date: 2026-06-05
 ---
 
-Welcome to the blog. This is the first post on my new site.
+Welcome. This is the first post on my new site.
 
 Writing here is intentionally low-friction: every post is just a markdown file
 in the repo. I add a new `.md` file, push it, and on the next deploy it shows up
