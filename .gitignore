@@ -17,3 +17,6 @@ pnpm-debug.log*
 # editor
 .vscode/
 .idea/
+
+# Local image originals — uploaded to R2, not committed
+media-src/
