@@ -203,7 +203,7 @@ const commands: Record<string, Cmd> = {
       sw.type = 'button';
       sw.className = 'term-link';
       sw.setAttribute('data-theme-switch', '');
-      sw.textContent = 'switch to light mode →';
+      sw.textContent = 'Boring Mode →';
       top.appendChild(sw);
       print(top);
       print('');
@@ -1157,7 +1157,7 @@ function welcome() {
   sw.type = 'button';
   sw.className = 'term-link';
   sw.setAttribute('data-theme-switch', '');
-  sw.textContent = 'switch to light mode →';
+  sw.textContent = 'Boring Mode →';
   hint.appendChild(sw);
   print(hint);
   print('');

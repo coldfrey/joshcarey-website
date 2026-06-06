@@ -217,7 +217,29 @@ body {
   font-size: 0.8rem;
   color: var(--muted);
   letter-spacing: 0.02em;
-  margin-right: 44px; /* balance the dots */
+}
+
+/* "Boring Mode" — leave the terminal for the plain light theme. Pinned to the
+   top-right of the title bar (window-control position) so it's unmissable. */
+.boring-btn {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--amber);
+  background: rgba(255, 176, 0, 0.08);
+  border: 1px solid var(--amber);
+  border-radius: 999px;
+  padding: 0.16rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.boring-btn:hover {
+  background: rgba(255, 176, 0, 0.18);
+  box-shadow: var(--glow);
 }
 
 /* =========================================================================
@@ -1699,26 +1721,37 @@ kbd {
 #term-form {
   position: relative;
 }
-/* hidden real input captures keystrokes/IME; we render the line + caret ourselves */
+/* The real input captures keystrokes/IME; we render the line + caret ourselves.
+   It is laid TRANSPARENTLY over the whole prompt row (not a 1px hidden field) so
+   a tap lands directly on it — iOS only reliably raises the soft keyboard when
+   the focused input is the actual tap target, not a programmatically-focused
+   off-screen element. Text + caret are transparent; our styled line shows through. */
 .term-hidden-input {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 1.2em;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   padding: 0;
   margin: 0;
   border: 0;
-  opacity: 0;
+  opacity: 1;
   color: transparent;
-  background: none;
+  background: transparent;
   caret-color: transparent;
   font: inherit;
   /* >=16px stops iOS Safari from zooming the page when the field is focused
-     (it's invisible, so the size has no visual effect) */
+     (text is transparent, so the size has no visual effect) */
   font-size: max(16px, 1em);
-  pointer-events: none;
-  z-index: -1;
+  /* tappable target on top of the rendered line */
+  pointer-events: auto;
+  z-index: 2;
+  -webkit-text-fill-color: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+/* we render our own block caret, so suppress the native focus ring */
+.term-hidden-input:focus,
+.term-hidden-input:focus-visible {
+  outline: none;
 }
 .term-line-live {
   position: relative;
@@ -1784,19 +1817,9 @@ kbd {
   }
 }
 
-/* status-bar theme switch — terminal text, not a default button */
-.status-link {
-  background: none;
-  border: none;
-  font: inherit;
+/* status-bar theme readout — informational (the switch lives in the titlebar) */
+.status-theme {
   color: var(--muted);
-  cursor: pointer;
-  padding: 0;
-}
-.status-link:hover {
-  color: var(--amber);
-  text-shadow: var(--glow);
-  text-decoration: underline;
 }
 
 /* clearance so the last line never hides behind the sticky status bar */
@@ -2323,6 +2346,15 @@ html.preboot::before {
     padding-top: 0.7rem;
     padding-bottom: 0.7rem;
   }
+  /* Mobile nav: solid background that fills from the very top of the screen
+     (incl. the notch / status-bar safe area) so the page never peeks through
+     above the bar while scrolling. */
+  [data-theme="light"] .topbar {
+    padding-top: calc(0.7rem + env(safe-area-inset-top, 0px));
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
   .nav-links {
     width: 100%;
     gap: 0.1rem;
@@ -2405,6 +2437,10 @@ html.preboot::before {
     right: 0;
     height: var(--app-height, 100dvh);
     min-height: 0;
+  }
+  /* title bar fills the notch / status-bar area so nothing peeks above it */
+  [data-theme="dark"] .term-titlebar {
+    padding-top: calc(0.6rem + env(safe-area-inset-top, 0px));
   }
   [data-theme="dark"] main {
     flex: 1 1 auto;

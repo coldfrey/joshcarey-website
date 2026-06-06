@@ -72,7 +72,10 @@ const year = new Date().getFullYear();
 <html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="canonical" href={canonical} />
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -138,9 +141,19 @@ const year = new Date().getFullYear();
   </head>
   <body>
     <div class="term-window">
-      <div class="term-titlebar" aria-hidden="true">
-        <span class="term-dots"><span></span><span></span><span></span></span>
-        <span class="term-title">{SITE.handle}@web: {termPath} — zsh</span>
+      <div class="term-titlebar">
+        <span class="term-dots" aria-hidden="true"
+          ><span></span><span></span><span></span></span
+        >
+        <span class="term-title" aria-hidden="true"
+          >{SITE.handle}@web: {termPath} — zsh</span
+        >
+        <button
+          type="button"
+          class="boring-btn"
+          data-theme-switch
+          title="Switch to light mode">Boring Mode</button
+        >
       </div>
 
       <header class="topbar">
@@ -232,12 +245,7 @@ const year = new Date().getFullYear();
         <span class="statusline term-only">
           <span class="mode">NORMAL</span>
           <span class="status-path">{termPath}</span>
-          <button
-            type="button"
-            class="status-link"
-            data-theme-switch
-            title="Switch to light mode">theme=amber-crt ↺ light</button
-          >
+          <span class="status-theme">theme=amber-crt</span>
           <span class="status-help-hint">? help</span>
         </span>
         <span class="doc-only">© {year} {SITE.name}</span>
