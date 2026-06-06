@@ -1907,9 +1907,8 @@ kbd {
   color: inherit;
   text-shadow: var(--glow);
   border-radius: 3px;
-  /* dotted underline signals "this is clickable" without shouting */
-  text-decoration: underline dotted;
-  text-decoration-color: color-mix(in srgb, var(--amber) 30%, transparent);
+  /* no underline by default — clean ls; the underline appears on hover/focus */
+  text-decoration: none;
   text-underline-offset: 3px;
   transition: background 0.12s ease, text-decoration-color 0.12s ease;
 }
@@ -1923,7 +1922,7 @@ kbd {
 .ls-entry:hover,
 .ls-entry:focus-visible {
   outline: none;
-  text-decoration-style: solid;
+  text-decoration: underline;
   text-decoration-color: currentColor;
   background: color-mix(in srgb, var(--amber) 15%, transparent);
 }
@@ -1965,8 +1964,7 @@ kbd {
   font: inherit;
   color: var(--accent);
   cursor: pointer;
-  text-decoration: underline dotted;
-  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-decoration: none;
   text-underline-offset: 2px;
   text-shadow: var(--glow);
 }
