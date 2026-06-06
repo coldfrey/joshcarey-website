@@ -77,25 +77,8 @@ const selectedWork = work.slice(0, 3);
     </div>
   </section>
 
-  {/* ---- recent writing + selected work (light only) ---- */}
+  {/* ---- selected work + recent writing (light only) ---- */}
   <div class="home-grid doc-only">
-    <section>
-      <p class="eyebrow">Writing</p>
-      <ul class="mini-list">
-        {
-          posts.map((post) => (
-            <li>
-              <a href={`/blog/${post.id}/`}>
-                <span class="mini-title">{post.data.title}</span>
-                <time class="mini-date">{fmt(post.data.date)}</time>
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-      <a class="more-link" href="/blog">All writing →</a>
-    </section>
-
     <section>
       <p class="eyebrow">Selected work</p>
       <ul class="mini-list">
@@ -115,6 +98,23 @@ const selectedWork = work.slice(0, 3);
         }
       </ul>
       <a class="more-link" href="/work">All work →</a>
+    </section>
+
+    <section>
+      <p class="eyebrow">Writing</p>
+      <ul class="mini-list">
+        {
+          posts.map((post) => (
+            <li>
+              <a href={`/blog/${post.id}/`}>
+                <span class="mini-title">{post.data.title}</span>
+                <time class="mini-date">{fmt(post.data.date)}</time>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="more-link" href="/blog">All writing →</a>
     </section>
   </div>
 </Base>

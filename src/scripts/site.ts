@@ -180,13 +180,40 @@ function focusTerminal() {
   el?.focus();
 }
 
+// Map the terminal's current deep-link (#p=…) to a light-mode page URL.
+function pageForTerminalFile(): string | null {
+  const h = location.hash.replace(/^#/, '');
+  const p = new URLSearchParams(h).get('p');
+  if (!p) return null;
+  if (p.startsWith('blog/') && p.endsWith('.md')) return '/' + p.slice(0, -3) + '/';
+  if (p.startsWith('work/')) return '/work/';
+  if (p.startsWith('gallery/')) return '/gallery/';
+  return null;
+}
+
 function toggleTheme() {
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
   if (next === 'dark') {
+    // entering the terminal → open the file matching the current page path
+    const path = location.pathname;
     applyTheme('dark');
-    playBoot(focusTerminal, true); // quick power-on on manual toggle
+    playBoot(() => {
+      focusTerminal();
+      try {
+        (window as any).__termSyncPath?.(path);
+      } catch {}
+    }, true);
   } else {
+    // leaving the terminal → go to the page matching the current terminal file
+    const target = pageForTerminalFile();
     applyTheme('light');
+    if (target && target.replace(/\/$/, '') !== location.pathname.replace(/\/$/, '')) {
+      location.href = target;
+    } else {
+      try {
+        history.replaceState(history.state, '', location.pathname + location.search);
+      } catch {}
+    }
   }
 }
 

@@ -2232,3 +2232,23 @@ html.preboot::before {
 .footer-help:hover {
   color: var(--fg);
 }
+
+/* mobile: keep the header nav within the viewport */
+@media (max-width: 480px) {
+  .term-window {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .topbar {
+    padding-top: 1.5rem;
+  }
+  .nav-links {
+    gap: 0.8rem;
+  }
+  .nav-links a {
+    font-size: 0.875rem;
+  }
+  .brand {
+    font-size: 0.95rem;
+  }
+}

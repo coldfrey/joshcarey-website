@@ -103,6 +103,44 @@ function readDeepLink(): string | null {
   return new URLSearchParams(h).get('p');
 }
 
+// Sync the terminal to a light-mode page path (called on theme toggle → dark),
+// so switching themes keeps you on the same content.
+function termSyncPath(pathname: string) {
+  if (!FS || !outEl) return;
+  const seg = pathname.replace(/^\/+|\/+$/g, '');
+  cwd = [];
+  if (!seg) {
+    updatePS1();
+    return;
+  }
+  if (seg.startsWith('blog/')) {
+    const slug = seg.slice(5);
+    if (resolve('blog/' + slug + '.md').node) {
+      commands.cd.run({ args: ['blog'], flags: new Set() });
+      updatePS1();
+      exec('cat ' + slug + '.md', false);
+      return;
+    }
+  }
+  if (seg === 'blog') {
+    commands.cd.run({ args: ['blog'], flags: new Set() });
+    updatePS1();
+    exec('ls', false);
+    return;
+  }
+  if (seg === 'work') {
+    updatePS1();
+    exec('git log', false);
+    return;
+  }
+  if (seg === 'gallery') {
+    updatePS1();
+    exec('gallery', false);
+    return;
+  }
+  updatePS1();
+}
+
 /* ---------- output rendering (XSS-safe: textContent only) ---------- */
 let outEl: HTMLElement | null = null;
 
@@ -227,6 +265,7 @@ const commands: Record<string, Cmd> = {
       head.className = 'cat-head';
       head.textContent = segs.length ? segs.join('/') : args[0];
       box.appendChild(head);
+      const linkRe = /(https?:\/\/[^\s]+|mailto:[^\s]+)/;
       (node.content || '').split('\n').forEach((l) => {
         if (l.startsWith('→ ')) {
           const href = l.slice(2).trim();
@@ -241,7 +280,30 @@ const commands: Record<string, Cmd> = {
           const div = line('', 'cat-line');
           div.appendChild(a);
           box.appendChild(div);
-        } else box.appendChild(line(l, 'cat-line'));
+        } else {
+          const m = l.match(linkRe);
+          if (m) {
+            // make any URL / mailto in the line an actual clickable link
+            const div = line('', 'cat-line');
+            const url = m[0];
+            const idx = m.index ?? 0;
+            if (idx) div.appendChild(document.createTextNode(l.slice(0, idx)));
+            const a = document.createElement('a');
+            a.className = 'term-link';
+            a.href = url;
+            if (/^https?:/.test(url)) {
+              a.target = '_blank';
+              a.rel = 'noopener';
+            }
+            a.textContent = url;
+            div.appendChild(a);
+            const rest = l.slice(idx + url.length);
+            if (rest) div.appendChild(document.createTextNode(rest));
+            box.appendChild(div);
+          } else {
+            box.appendChild(line(l, 'cat-line'));
+          }
+        }
       });
       print(box);
       // shareable deep-link: ?p=blog/hello-world.md
@@ -265,11 +327,9 @@ const commands: Record<string, Cmd> = {
   clear: {
     help: 'clear the screen',
     run() {
+      // Just empty the terminal output. (Page content is already hidden in dark
+      // via CSS; hiding it with inline styles used to leak into light mode.)
       if (outEl) outEl.textContent = '';
-      // also clear the static pre-printed content for a true clear
-      document
-        .querySelectorAll('main > .block, main > .gitlog, main > .gallery-ls, main > .cmd-line, main > .page-title, main > .page-lede, main > .timeline, main > .gallery, main > article, main > .back-link')
-        .forEach((n) => ((n as HTMLElement).style.display = 'none'));
     },
   },
   neofetch: { help: 'system info', run: () => NEOFETCH.split('\n').forEach((l) => print(l, 'term-amber')) },
@@ -1037,6 +1097,8 @@ async function init() {
     if (window.getSelection()?.toString()) return;
     setTimeout(() => inputEl?.focus({ preventScroll: true }), 0);
   });
+
+  (window as any).__termSyncPath = termSyncPath;
 
   if (document.documentElement.getAttribute('data-theme') === 'dark') {
     setTimeout(() => inputEl?.focus(), 60);
