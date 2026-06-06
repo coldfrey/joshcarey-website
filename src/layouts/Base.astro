@@ -77,6 +77,8 @@ const year = new Date().getFullYear();
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="canonical" href={canonical} />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link
@@ -109,13 +111,22 @@ const year = new Date().getFullYear();
          paints BEFORE the terminal is visible; JS runs the boot then clears it. -->
     <script is:inline>
       window.__resolveTheme = function () {
-        var t = localStorage.getItem('theme');
-        if (t === 'light' || t === 'dark') return t;
-        // No explicit choice: small / coarse-pointer devices → light.
         var phone =
           window.matchMedia('(max-width: 640px)').matches ||
           window.matchMedia('(pointer: coarse)').matches;
-        if (phone) return 'light';
+        // Phones ALWAYS open in light — the terminal/dark is a desktop
+        // experience. Dark can still be toggled, but only for the current
+        // browsing session (sessionStorage), so every fresh visit is light.
+        if (phone) {
+          try {
+            return sessionStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+          } catch (e) {
+            return 'light';
+          }
+        }
+        // Desktop: explicit saved pref wins, else follow the OS.
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') return t;
         return window.matchMedia('(prefers-color-scheme: dark)').matches
           ? 'dark'
           : 'light';

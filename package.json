@@ -11,7 +11,9 @@
     "astro": "astro",
     "deploy": "astro build && wrangler pages deploy dist",
     "media:sync": "bash scripts/sync-media-to-r2.sh",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "git config core.hooksPath .githooks",
+    "lqip": "python3 tools/gen-lqip.py",
+    "logo": "python3 tools/generate-logo.py"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.11",

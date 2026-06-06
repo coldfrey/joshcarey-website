@@ -1,37 +1,43 @@
 ---
 import Prompt from './Prompt.astro';
 import { gallery } from '../data/gallery';
+import { lqipFor } from '../data/lqip';
 ---
 
 {/* ============ LIGHT: photo wall ============ */}
 <div class="gallery doc-only">
   {
-    gallery.map((item, i) => (
-      <button
-        class="gallery-item"
-        data-index={i}
-        data-full={item.src}
-        data-title={item.title}
-        data-meta={`${item.file} · ${item.size}${item.location ? ' · ' + item.location : ''}`}
-        style={`--ar:${item.w}/${item.h}; --i:${i}`}
-        data-span={item.span}
-        aria-label={`View ${item.title}`}
-        type="button"
-      >
-        <img
-          src={item.src}
-          alt={item.alt}
-          width={item.w}
-          height={item.h}
-          loading={i < 2 ? 'eager' : 'lazy'}
-          decoding="async"
-        />
-        <span class="gi-caption">
-          <span class="gi-title">{item.title}</span>
-          {item.location && <span class="gi-loc">{item.location}</span>}
-        </span>
-      </button>
-    ))
+    gallery.map((item, i) => {
+      const lqip = lqipFor(item.src);
+      return (
+        <button
+          class="gallery-item"
+          data-index={i}
+          data-full={item.src}
+          data-title={item.title}
+          data-lqip={lqip}
+          data-meta={`${item.file} · ${item.size}${item.location ? ' · ' + item.location : ''}`}
+          style={`--ar:${item.w}/${item.h}; --i:${i}${lqip ? `; --lqip:url("${lqip}")` : ''}`}
+          data-span={item.span}
+          aria-label={`View ${item.title}`}
+          type="button"
+        >
+          <img
+            src={item.src}
+            alt={item.alt}
+            width={item.w}
+            height={item.h}
+            loading={i < 2 ? 'eager' : 'lazy'}
+            decoding="async"
+            data-blurup
+          />
+          <span class="gi-caption">
+            <span class="gi-title">{item.title}</span>
+            {item.location && <span class="gi-loc">{item.location}</span>}
+          </span>
+        </button>
+      );
+    })
   }
 </div>
 

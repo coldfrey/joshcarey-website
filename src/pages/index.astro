@@ -4,6 +4,9 @@ import Prompt from '../components/Prompt.astro';
 import { getCollection } from 'astro:content';
 import { work } from '../data/work';
 import { SITE } from '../config';
+import { lqipFor } from '../data/lqip';
+
+const avatarLqip = lqipFor(SITE.avatar);
 
 const posts = (await getCollection('blog'))
   .filter((p) => !p.data.draft)
@@ -26,6 +29,11 @@ const selectedWork = work.slice(0, 3);
         alt="Joshua Carey"
         width="80"
         height="80"
+        loading="eager"
+        decoding="async"
+        style={avatarLqip
+          ? `background-image:url("${avatarLqip}");background-size:cover;background-position:center`
+          : undefined}
         onerror={`this.onerror=null;this.src='${SITE.avatarFallback}'`}
       />
       <div>
@@ -43,9 +51,6 @@ const selectedWork = work.slice(0, 3);
     <div class="intro out">
       <p>
         Welcome to my corner of the internet.
-      </p>
-      <p>
-        Take a look around
       </p>
     </div>
   </section>

@@ -26,6 +26,8 @@ function applyTheme(t: 'light' | 'dark') {
   document.documentElement.setAttribute('data-theme', t);
   try {
     localStorage.setItem('theme', t);
+    // session pref drives the phone default (light-first, dark per-session)
+    sessionStorage.setItem('theme', t);
   } catch {}
 }
 
@@ -234,6 +236,14 @@ function fillLightbox(i: number) {
   const cap = document.querySelector<HTMLElement>('.lb-caption');
   const cmdfile = document.querySelector<HTMLElement>('.lb-cmdfile');
   if (!img) return;
+  // show the blurred LQIP behind the full image while it loads, then clear it
+  const lqip = el.dataset.lqip;
+  img.style.backgroundImage = lqip ? `url("${lqip}")` : '';
+  img.style.backgroundSize = 'cover';
+  img.style.backgroundPosition = 'center';
+  img.onload = () => {
+    img.style.backgroundImage = '';
+  };
   img.src = el.dataset.full || '';
   img.alt = el.dataset.title || '';
   if (cap) cap.textContent = `${el.dataset.title || ''} — ${el.dataset.meta || ''}`;
@@ -447,9 +457,30 @@ function syncNavScrolled() {
   if (bar) bar.classList.toggle('scrolled', window.scrollY > 4);
 }
 
+/* ---------------- blur-up images (LQIP preview → fade in full) ----------------
+   Progressive enhancement: images that are already cached/complete show
+   instantly; the rest start transparent over their blurred LQIP background and
+   fade in on load. Without JS, images render normally (never hidden). */
+function initBlurUp() {
+  const imgs = document.querySelectorAll<HTMLImageElement>('img[data-blurup]');
+  imgs.forEach((img) => {
+    if (img.dataset.blurupWired) return;
+    img.dataset.blurupWired = '1';
+    if (img.complete && img.naturalWidth > 0) {
+      img.classList.add('is-loaded');
+      return;
+    }
+    img.classList.add('blurup');
+    const done = () => img.classList.add('is-loaded');
+    img.addEventListener('load', done, { once: true });
+    img.addEventListener('error', done, { once: true });
+  });
+}
+
 function init() {
   initTermFont();
   syncNavScrolled();
+  initBlurUp();
   // Boot sequence on a fresh dark load (the head added `preboot`).
   if (document.documentElement.classList.contains('preboot')) {
     playBoot(focusTerminal);
