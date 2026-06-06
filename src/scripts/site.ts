@@ -88,7 +88,7 @@ const BOOT_LINES = [
   'joshOS 2.0  (c) 2026 joshuacarey',
   '[ ok ] cpu: 1 core online',
   '[ ok ] mem: 16384K OK',
-  '[ ok ] mount / : about work blog gallery',
+  '[ ok ] mount / : about work writing gallery',
   '[ ok ] amber-crt display driver',
   'login: joshuacarey (auto)',
   'welcome — type `help`',
@@ -185,7 +185,7 @@ function pageForTerminalFile(): string | null {
   const h = location.hash.replace(/^#/, '');
   const p = new URLSearchParams(h).get('p');
   if (!p) return null;
-  if (p.startsWith('blog/') && p.endsWith('.md')) return '/' + p.slice(0, -3) + '/';
+  if (p.startsWith('writing/') && p.endsWith('.md')) return '/blog/' + p.slice(8, -3) + '/';
   if (p.startsWith('work/')) return '/work/';
   if (p.startsWith('gallery/')) return '/gallery/';
   return null;
@@ -441,8 +441,15 @@ function onClick(e: MouseEvent) {
   if (commit && !t.closest('a')) return toggleCommit(commit);
 }
 
+/* ---------------- sticky-nav border on scroll (light) ---------------- */
+function syncNavScrolled() {
+  const bar = document.querySelector('.topbar');
+  if (bar) bar.classList.toggle('scrolled', window.scrollY > 4);
+}
+
 function init() {
   initTermFont();
+  syncNavScrolled();
   // Boot sequence on a fresh dark load (the head added `preboot`).
   if (document.documentElement.classList.contains('preboot')) {
     playBoot(focusTerminal);
@@ -451,6 +458,7 @@ function init() {
   window.__siteInit = true;
   document.addEventListener('click', onClick);
   document.addEventListener('keydown', onKey);
+  window.addEventListener('scroll', syncNavScrolled, { passive: true });
   // Clicking the dialog backdrop closes the lightbox.
   document.addEventListener('click', (e) => {
     const dlg = document.getElementById('lightbox') as HTMLDialogElement | null;

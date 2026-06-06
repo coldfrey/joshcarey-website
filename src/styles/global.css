@@ -2237,22 +2237,136 @@ html.preboot::before {
   color: var(--fg);
 }
 
-/* mobile: keep the header nav within the viewport */
-@media (max-width: 480px) {
-  .term-window {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
+/* =========================================================================
+   v4 — refined LIGHT nav (sticky, editorial) + full mobile pass
+   The dark terminal keeps its own chrome; everything here is light-only or
+   layout that's safe in both modes.
+   ========================================================================= */
+[data-theme="light"] .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  /* full-bleed background so content scrolls cleanly underneath */
+  margin: 0 calc(-1 * var(--pad));
+  padding: 0.85rem var(--pad);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  -webkit-backdrop-filter: saturate(150%) blur(12px);
+  backdrop-filter: saturate(150%) blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+[data-theme="light"] .topbar.scrolled {
+  border-bottom-color: var(--border);
+}
+
+/* brand as a terminal-flavoured wordmark — the quiet tie to dark mode */
+[data-theme="light"] .brand {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+[data-theme="light"] .brand::before {
+  content: "~/";
+  color: var(--accent);
+  opacity: 0.65;
+}
+
+/* nav links + toggle share one fixed height so they sit on a perfect line */
+[data-theme="light"] .nav-links {
+  gap: 0.2rem;
+}
+[data-theme="light"] .nav-links a {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.005em;
+  color: var(--muted);
+  padding: 0 0.72rem;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+[data-theme="light"] .nav-links a:hover {
+  color: var(--fg);
+  background: var(--bg-sunken);
+}
+[data-theme="light"] .nav-links a[aria-current="page"] {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+/* theme toggle as a tidy bordered square (real tap target), centred icon */
+[data-theme="light"] .theme-toggle {
+  width: 36px;
+  height: 36px;
+  margin-left: 0.3rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-elev);
+  color: var(--muted);
+}
+[data-theme="light"] .theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+}
+
+/* ---- tablet / phone: two-row nav so links never get crushed ---- */
+@media (max-width: 560px) {
   .topbar {
-    padding-top: 1.5rem;
+    flex-wrap: wrap;
+    row-gap: 0.55rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
   }
   .nav-links {
-    gap: 0.8rem;
+    width: 100%;
+    gap: 0.1rem;
   }
-  .nav-links a {
-    font-size: 0.875rem;
+  /* links sit left, toggle pinned to the far right of the row */
+  .nav-links .theme-toggle {
+    margin-left: auto;
   }
-  .brand {
-    font-size: 0.95rem;
+  [data-theme="light"] .nav-links a {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.84rem;
   }
+}
+
+/* ---- general mobile padding + tap-target polish ---- */
+@media (max-width: 640px) {
+  .term-window {
+    --pad: 1.15rem;
+  }
+  main {
+    padding-top: 2rem;
+  }
+  /* comfortable thumb targets on the editorial lists */
+  .mini-list a,
+  .entry-link {
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+  }
+  .site-footer {
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 400px) {
+  [data-theme="light"] .brand {
+    font-size: 0.86rem;
+  }
+  [data-theme="light"] .nav-links a {
+    padding: 0.45rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* honour iOS notch on the dark full-screen terminal */
+[data-theme="dark"] .site-footer {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }

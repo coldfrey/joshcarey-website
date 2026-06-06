@@ -32,13 +32,13 @@ export const GET: APIRoute = async () => {
     .filter((p) => !p.data.draft)
     .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
-  const about = `${SITE.name} — software engineer.
+  const about = `joshua carey
+engineer · founder · ex-GBR athlete
 
-I build clean, useful things for the web, and occasionally write about them.
-This site has two faces: a calm Notion/Granola-style document by day, and the
-amber terminal you're reading now by night.
+now      AI @ Cecil Wright & Partners
+before   founding engineer @ SAMMY Labs (YC W25)
 
-Type \`help\` to look around. Try: ls, cat about.txt, cd work, gallery, snake.`;
+try: ls · git log · gallery · help`;
 
   const contact = SOCIALS.map((s) => `${s.label.padEnd(10)} ${s.href}`).join('\n');
 
@@ -94,7 +94,7 @@ Type \`help\` to look around. Try: ls, cat about.txt, cd work, gallery, snake.`;
       'about.txt': { type: 'file', content: about },
       'contact.txt': { type: 'file', content: contact },
       work: { type: 'dir', href: '/work', children: workChildren },
-      blog: { type: 'dir', href: '/blog', children: blogChildren },
+      writing: { type: 'dir', href: '/blog', children: blogChildren },
       gallery: { type: 'dir', href: '/gallery', children: galleryChildren },
       '.secret': {
         type: 'file',

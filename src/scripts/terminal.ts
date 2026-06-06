@@ -115,15 +115,15 @@ function termSyncPath(pathname: string) {
   }
   if (seg.startsWith('blog/')) {
     const slug = seg.slice(5);
-    if (resolve('blog/' + slug + '.md').node) {
-      commands.cd.run({ args: ['blog'], flags: new Set() });
+    if (resolve('writing/' + slug + '.md').node) {
+      commands.cd.run({ args: ['writing'], flags: new Set() });
       updatePS1();
       exec('cat ' + slug + '.md', false);
       return;
     }
   }
   if (seg === 'blog') {
-    commands.cd.run({ args: ['blog'], flags: new Set() });
+    commands.cd.run({ args: ['writing'], flags: new Set() });
     updatePS1();
     exec('ls', false);
     return;

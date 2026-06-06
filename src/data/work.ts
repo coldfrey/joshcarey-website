@@ -1,64 +1,114 @@
-// Your work / career timeline.
-// LIGHT mode renders this as an elegant editorial timeline.
-// DARK mode renders the SAME data as `git log --graph` commit history.
-//
-// Add newest entries at the TOP (reverse-chronological, like git log).
+// Career timeline. LIGHT = editorial timeline, DARK = `git log --graph`.
+// Newest first. Keep descriptions terse — one line, no essays.
 export interface WorkItem {
   title: string;
   description: string;
-  date: string; // ISO-ish, e.g. "2026-06" or "2026"
-  range?: string; // human label shown on the timeline, e.g. "2024 — now"
+  date: string; // big year numeral (use the most recent / end year)
+  range?: string; // span label, e.g. "2024 — 2025"
   role?: string;
   href?: string;
   stack?: string[];
   status?: 'active' | 'shipped' | 'archived';
-  branch?: string; // git ref decoration, e.g. "main", "labs"
-  tag?: string; // git tag decoration, e.g. "v2.0"
-  highlights?: string[]; // shown when a commit is expanded (git show)
+  branch?: string;
+  tag?: string;
+  highlights?: string[];
 }
 
 export const work: WorkItem[] = [
   {
-    title: 'This website',
-    description: 'A dual-personality personal site — Granola-clean by day, amber CRT terminal by night.',
-    date: '2026',
-    range: '2026 — now',
-    role: 'Design & build',
-    href: 'https://github.com/coldfrey/joshcarey-website',
-    stack: ['Astro', 'TypeScript', 'CSS', 'Cloudflare'],
+    title: 'Cecil Wright & Partners',
+    role: 'AI & Digital Transformation',
+    description: 'AI and digital transformation at a boutique superyacht brokerage.',
+    date: '2025',
+    range: '2025 — now',
     status: 'active',
     branch: 'main',
-    highlights: [
-      'Light = Notion/Granola minimal document; dark = interactive amber terminal',
-      'Markdown blog that deploys on push, scroll-driven timeline, animated gallery',
-      'Static-first, deployed on Cloudflare Pages via GitHub Actions',
-    ],
+    href: 'https://www.cecilwright.com',
+    stack: ['AI', 'TypeScript', 'Python'],
   },
   {
-    title: 'Project Two',
-    description: 'Short one-line description of what it is and why it’s interesting.',
+    title: 'SAMMY Labs',
+    role: 'Founding Engineer',
+    description: 'First hire — built AI agents & LLM apps; scaled the team 1→6 on a $2.7M seed.',
     date: '2025',
-    range: '2025',
-    role: 'Engineer',
-    href: '#',
-    stack: ['TypeScript', 'React'],
+    range: '2024 — 2025',
     status: 'shipped',
-    tag: 'v1.0',
-    highlights: [
-      'Replace these with your real wins.',
-      'Each bullet shows up under `git show`.',
-    ],
+    tag: 'YC W25',
+    stack: ['Python', 'TypeScript', 'LLMs', 'GCP'],
   },
   {
-    title: 'Project Three',
-    description: 'Another thing you built or contributed to.',
+    title: 'Captain App',
+    role: 'Co-Founder',
+    description: 'Co-founded a full-stack software consultancy.',
     date: '2024',
-    range: '2024',
-    role: 'Contributor',
-    stack: ['Python'],
+    range: '2021 — 2024',
+    status: 'shipped',
+    stack: ['Flutter', 'GCP', 'AWS'],
+  },
+  {
+    title: 'Glamox',
+    role: 'Dart + Cloud Developer',
+    description: 'BLE commissioning app for a commercial lighting system.',
+    date: '2024',
+    range: '2023 — 2024',
+    status: 'shipped',
+    branch: 'contract',
+    stack: ['Flutter', 'Firebase', 'BLE'],
+  },
+  {
+    title: 'MSc Computer Science',
+    role: 'University of Bristol',
+    description: 'Thesis: RL for autonomous kite-powered vessel control.',
+    date: '2023',
+    range: 'MSc · 2023',
     status: 'archived',
-    branch: 'archive',
-    highlights: ['Add detail here.'],
+    branch: 'edu',
+  },
+  {
+    title: 'Uncommon',
+    role: 'Full-Stack Developer',
+    description: 'E-commerce site + admin dashboard.',
+    date: '2023',
+    range: '2022 — 2023',
+    status: 'shipped',
+    branch: 'contract',
+    stack: ['Next.js', 'Sanity', 'AWS'],
+  },
+  {
+    title: 'BEng Mechanical Engineering',
+    role: 'University of Bristol — 1st Class',
+    description: 'First-class honours.',
+    date: '2022',
+    range: 'BEng · 2022',
+    status: 'archived',
+    branch: 'edu',
+  },
+  {
+    title: 'Lite IP',
+    role: 'Full-Stack & Product',
+    description: 'IoT add-on for commercial lighting — installed at PwC.',
+    date: '2021',
+    range: '2020 — 2021',
+    status: 'archived',
+    branch: 'contract',
+    stack: ['C', 'SwiftUI', 'React', 'ESP32'],
+  },
+  {
+    title: 'Ineos Acetyls',
+    role: 'Mechanical Engineering Intern',
+    description: 'Reformer temperature-monitoring analysis.',
+    date: '2021',
+    range: 'Summer 2021',
+    status: 'archived',
+  },
+  {
+    title: 'Team GBR',
+    role: 'International Athlete — Windsurf & Kitefoil',
+    description: 'Raced for Great Britain. National Champion; 3rd at Europeans.',
+    date: '2021',
+    range: '2012 — 2021',
+    status: 'archived',
+    branch: 'athlete',
   },
 ];
 

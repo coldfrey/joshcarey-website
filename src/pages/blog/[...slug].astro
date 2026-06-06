@@ -23,7 +23,7 @@ const fmt = (d: Date) =>
 
 <Base title={post.data.title} description={post.data.description}>
   <a class="back-link" href="/blog">← Writing</a>
-  <Prompt cmd={`cat ${post.id}.md`} path="~/blog" class="term-only" />
+  <Prompt cmd={`cat ${post.id}.md`} path="~/writing" class="term-only" />
 
   <article>
     <header class="post-header">
