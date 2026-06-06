@@ -2189,3 +2189,12 @@ html.preboot::before {
   font-size: var(--step-5);
   letter-spacing: var(--tracking-tighter);
 }
+
+.term-matrix {
+  display: block;
+  margin: 0.5em 0;
+  border: 1px solid var(--border-strong);
+  background: #0a0702;
+  border-radius: 4px;
+  box-shadow: 0 0 40px -12px rgba(255, 176, 0, 0.3);
+}

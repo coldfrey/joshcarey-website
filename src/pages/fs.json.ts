@@ -115,7 +115,26 @@ Type \`help\` to look around. Try: ls, cat about.txt, cd work, gallery, snake.`;
     },
   };
 
-  return new Response(JSON.stringify(root), {
+  // commit log for the `git log --graph` command
+  const commits = work.map((item) => ({
+    hash: commitHash(item.title + item.date),
+    title: item.title,
+    date: item.date,
+    range: item.range ?? item.date,
+    role: item.role ?? '',
+    type: item.status === 'archived' ? 'chore' : 'feat',
+    refs: [
+      ...(item.status === 'active' ? ['HEAD -> main'] : []),
+      ...(item.branch && item.branch !== 'main' ? [item.branch] : []),
+      ...(item.tag ? [`tag: ${item.tag}`] : []),
+    ],
+    desc: item.description,
+    stack: item.stack ?? [],
+    highlights: item.highlights ?? [],
+    href: item.href ?? '',
+  }));
+
+  return new Response(JSON.stringify({ ...root, commits }), {
     headers: { 'content-type': 'application/json' },
   });
 };

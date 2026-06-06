@@ -118,6 +118,13 @@ function print(node: HTMLElement | string, cls = '') {
   outEl.appendChild(typeof node === 'string' ? line(node, cls) : node);
 }
 
+function spanEl(cls: string, text: string): HTMLSpanElement {
+  const s = document.createElement('span');
+  s.className = cls;
+  s.textContent = text;
+  return s;
+}
+
 function printEcho(cmd: string) {
   const el = document.createElement('div');
   el.className = 'term-line term-echo';
@@ -322,6 +329,85 @@ commands.about = {
   run: () => commands.cat.run({ args: ['about.txt'], flags: new Set() }),
 };
 commands.gallery = { help: 'browse photos (TUI)', run: () => startGallery() };
+
+interface Commit {
+  hash: string;
+  title: string;
+  date: string;
+  range: string;
+  role: string;
+  type: string;
+  refs: string[];
+  desc: string;
+  stack: string[];
+  highlights: string[];
+  href: string;
+}
+const refClass = (r: string) =>
+  r.startsWith('tag:') ? 'ref-tag' : r.startsWith('HEAD') ? 'ref-head' : 'ref-branch';
+
+commands.git = {
+  help: 'project history — git log --graph',
+  run({ args }) {
+    const commits: Commit[] = (FS as any)?.commits || [];
+    if (!commits.length) return void print('git: no commits found', 'term-err');
+
+    if (args[0] === 'show') {
+      const c = commits.find((x) => x.hash.startsWith(args[1] || ''));
+      if (!c) return void print(`git: bad revision '${args[1] || ''}'`, 'term-err');
+      print(spanEl('hash', `commit ${c.hash}`));
+      print('Author: Joshua Carey <josh.fwh.carey@gmail.com>', 'term-dim');
+      print(`Date:   ${c.range}`, 'term-dim');
+      print('');
+      print(`    ${c.type}: ${c.title}`);
+      print('');
+      c.highlights.forEach((h) => print('    + ' + h, 'cb-add'));
+      if (c.stack.length) print('    stack: ' + c.stack.join(', '), 'term-dim');
+      if (c.href && c.href !== '#') {
+        const d = line('    ');
+        const a = document.createElement('a');
+        a.className = 'term-link';
+        a.href = c.href;
+        if (/^https?:/.test(c.href)) {
+          a.target = '_blank';
+          a.rel = 'noopener';
+        }
+        a.textContent = '→ ' + c.href;
+        d.appendChild(a);
+        print(d);
+      }
+      return;
+    }
+
+    // git log --graph
+    commits.forEach((c) => {
+      const row = line();
+      row.append(spanEl('graph', '* '), spanEl('hash', c.hash + ' '));
+      if (c.refs.length) {
+        row.append(document.createTextNode('('));
+        c.refs.forEach((r, j) => {
+          if (j) row.append(spanEl('sep', ', '));
+          row.append(spanEl(refClass(r), r));
+        });
+        row.append(document.createTextNode(') '));
+      }
+      row.append(spanEl('ctype', c.type + ': '), spanEl('subject', c.title));
+      print(row);
+
+      const body = line();
+      body.append(spanEl('graph', '│ '), spanEl('cb-text', '  ' + c.desc));
+      print(body);
+      const meta = line();
+      meta.append(spanEl('graph', '│ '), spanEl('cb-meta', '  ' + c.range + (c.role ? ' · ' + c.role : '')));
+      print(meta);
+      print(spanEl('graph', '│'));
+    });
+    print('', 'term-dim');
+    print('› git show <hash> for details', 'term-dim');
+  },
+};
+
+commands.matrix = { help: 'enter the matrix', hidden: true, run: () => startMatrix() };
 
 /* ---------- the shell loop ---------- */
 function exec(raw: string, addHistory: boolean) {
@@ -732,6 +818,61 @@ function openPhoto(items: Photo[], start: number) {
 
 function reduceMotionT() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/* ---------- matrix rain 🟧 ---------- */
+let matrixActive = false;
+function startMatrix() {
+  if (matrixActive) return;
+  if (reduceMotionT()) {
+    print('the matrix has you… (animation disabled by reduced-motion)', 'term-amber');
+    return;
+  }
+  matrixActive = true;
+  inputEl?.blur();
+  const cvs = document.createElement('canvas');
+  cvs.className = 'term-matrix';
+  const w = Math.min(640, Math.floor((outEl?.clientWidth || 600) * 0.92));
+  cvs.width = w;
+  cvs.height = 260;
+  print(cvs);
+  print('press q to wake up', 'term-dim');
+  scrollToInput();
+  const ctx = cvs.getContext('2d')!;
+  const amber = (getComputedStyle(document.documentElement).getPropertyValue('--amber') || '#ffb000').trim();
+  const fontSize = 14;
+  const cols = Math.floor(cvs.width / fontSize);
+  const drops = new Array(cols).fill(0).map(() => Math.floor(Math.random() * -20));
+  const glyphs = 'アイウエオカキクケコサシスセソ0123456789ABCDEF<>/\\$#*'.split('');
+  let timer = 0;
+  function frame() {
+    ctx.fillStyle = 'rgba(10,7,2,0.18)';
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.font = fontSize + 'px monospace';
+    for (let i = 0; i < cols; i++) {
+      const ch = glyphs[Math.floor(Math.random() * glyphs.length)];
+      const x = i * fontSize;
+      const y = drops[i] * fontSize;
+      ctx.fillStyle = Math.random() < 0.06 ? '#fff3d6' : amber || '#ffb000';
+      ctx.fillText(ch, x, y);
+      if (y > cvs.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  function key(e: KeyboardEvent) {
+    if (e.key === 'q' || e.key === 'Escape') {
+      window.clearInterval(timer);
+      document.removeEventListener('keydown', key, true);
+      matrixActive = false;
+      print('wake up, joshuacarey…', 'term-amber');
+      inputEl?.focus();
+      scrollToInput();
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+  document.addEventListener('keydown', key, true);
+  timer = window.setInterval(frame, 55);
 }
 
 /* ---------- history persistence ---------- */
