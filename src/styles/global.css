@@ -1681,21 +1681,87 @@ kbd {
   flex-wrap: nowrap;
   margin-top: 0.2em;
 }
-.term-input {
-  flex: 1 1 auto;
-  min-width: 4ch;
-  font: inherit;
-  background: none;
-  border: none;
-  outline: none;
-  color: var(--fg);
-  caret-color: var(--amber);
+#term-form {
+  position: relative;
+}
+/* hidden real input captures keystrokes/IME; we render the line + caret ourselves */
+.term-hidden-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1.2em;
   padding: 0;
+  margin: 0;
+  border: 0;
+  opacity: 0;
+  color: transparent;
+  background: none;
+  caret-color: transparent;
+  font: inherit;
+  pointer-events: none;
+  z-index: -1;
+}
+.term-line-live {
+  flex: 1 1 auto;
+  min-width: 0;
   margin-left: 0.6ch;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg);
   text-shadow: var(--glow);
 }
-.term-caret {
-  display: none;
+/* the block caret renders the char it covers, inverted */
+.term-line-live .caret {
+  display: inline-block;
+  min-width: 0.62ch;
+  background: var(--amber);
+  color: #120c03;
+  text-shadow: none;
+}
+#terminal:focus-within .term-line-live .caret {
+  animation: caret-blink 1.05s steps(1) infinite;
+}
+.term-line-live.typing .caret {
+  animation: none;
+  opacity: 1;
+}
+/* hollow caret when the terminal isn't focused — the real-terminal tell */
+#terminal:not(:focus-within) .term-line-live .caret {
+  background: transparent;
+  color: var(--fg);
+  box-shadow: inset 0 0 0 1px var(--amber);
+  animation: none;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .term-line-live .caret {
+    animation: none !important;
+  }
+}
+
+/* status-bar theme switch — terminal text, not a default button */
+.status-link {
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+.status-link:hover {
+  color: var(--amber);
+  text-shadow: var(--glow);
+  text-decoration: underline;
+}
+
+/* clearance so the last line never hides behind the sticky status bar */
+[data-theme="dark"] main {
+  padding-bottom: 4.5rem;
 }
 .ls-entry {
   background: none;

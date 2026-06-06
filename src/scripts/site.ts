@@ -351,6 +351,7 @@ function onKey(e: KeyboardEvent) {
 function onClick(e: MouseEvent) {
   const t = e.target as HTMLElement;
   if (t.closest('#theme-toggle')) return toggleTheme();
+  if (t.closest('[data-theme-switch]')) return toggleTheme();
   if (t.closest('[data-lb-close]')) return closeLightbox();
   if (t.closest('[data-lb-prev]')) return stepLightbox(-1);
   if (t.closest('[data-lb-next]')) return stepLightbox(1);

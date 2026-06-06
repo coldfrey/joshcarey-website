@@ -146,32 +146,41 @@ const year = new Date().getFullYear();
         <div id="terminal" class="terminal-live term-only">
           <div id="term-out"></div>
           <form id="term-form" autocomplete="off">
-            <label class="term-ps1" for="term-input"
+            <span class="term-ps1"
               ><span class="usr">{SITE.handle}@web</span><span
                 class="path term-cwd">:{termPath}</span
-              ><span class="dollar">$</span></label
+              ><span class="dollar">$</span></span
+            >
+            <span id="term-line" class="term-line-live" aria-hidden="true"
+              ><span class="caret">&nbsp;</span></span
             >
             <input
               id="term-input"
-              class="term-input"
+              class="term-hidden-input"
               type="text"
+              inputmode="text"
+              enterkeyhint="go"
               autocomplete="off"
               autocapitalize="off"
               autocorrect="off"
               spellcheck="false"
-              aria-label="terminal input"
+              aria-label="terminal command input"
             />
-            <span class="term-caret" aria-hidden="true"></span>
           </form>
         </div>
       </main>
 
       <footer class="site-footer">
-        <span class="statusline term-only" aria-hidden="true">
+        <span class="statusline term-only">
           <span class="mode">NORMAL</span>
-          <span>{termPath}</span>
-          <span>theme=amber-crt</span>
-          <span>? help</span>
+          <span class="status-path">{termPath}</span>
+          <button
+            type="button"
+            class="status-link"
+            data-theme-switch
+            title="Switch to light mode">theme=amber-crt ↺ light</button
+          >
+          <span class="status-help-hint">? help</span>
         </span>
         <span class="doc-only">© {year} {SITE.name}</span>
         <span style="display:flex;gap:1.1rem;flex-wrap:wrap">

@@ -322,7 +322,9 @@ function onKeyDown(e: KeyboardEvent) {
     }
     histIdx = Math.max(0, histIdx - 1);
     inputEl.value = history[histIdx];
+    comp.matches = [];
     moveCaretEnd();
+    renderLine();
   } else if (e.key === 'ArrowDown') {
     e.preventDefault();
     if (histIdx === -1) return;
@@ -331,7 +333,9 @@ function onKeyDown(e: KeyboardEvent) {
       histIdx = -1;
       inputEl.value = draft;
     } else inputEl.value = history[histIdx];
+    comp.matches = [];
     moveCaretEnd();
+    renderLine();
   } else if (e.key === 'Tab') {
     e.preventDefault();
     complete();
@@ -341,39 +345,59 @@ function onKeyDown(e: KeyboardEvent) {
   }
 }
 
+// Tab completion that CYCLES through matches (zsh menu-complete style).
+let comp = { matches: [] as string[], idx: 0, prefix: '', value: '' };
+
 function complete() {
   if (!inputEl) return;
   const val = inputEl.value;
-  const parts = val.split(/\s+/);
-  const isFirst = parts.length === 1;
-  const token = parts[parts.length - 1];
-  let pool: string[] = [];
+
+  // already cycling on the same value → advance to the next match
+  if (comp.matches.length && val === comp.value) {
+    comp.idx = (comp.idx + 1) % comp.matches.length;
+    applyCompletion();
+    return;
+  }
+
+  const m = /(\S*)$/.exec(val)!;
+  const token = m[1];
+  if (!token) return; // empty token → no-op (don't dump everything)
+  const prefix = val.slice(0, val.length - token.length);
+  const isFirst = prefix.trim() === '';
+
+  let pool: string[];
   if (isFirst) {
     pool = Object.keys(commands).filter((c) => !commands[c].hidden);
   } else {
     const dir = nodeAt(cwd);
-    if (dir?.children) pool = Object.keys(dir.children).filter((n) => !n.startsWith('.') || token.startsWith('.'));
+    pool = dir?.children
+      ? Object.keys(dir.children).filter((n) => !n.startsWith('.') || token.startsWith('.'))
+      : [];
   }
-  const matches = pool.filter((p) => p.startsWith(token));
+  const matches = pool.filter((p) => p.startsWith(token)).sort();
   if (!matches.length) return;
   if (matches.length === 1) {
-    parts[parts.length - 1] = matches[0];
-    inputEl.value = parts.join(' ') + (isFirst ? ' ' : '');
-  } else {
-    // longest common prefix
-    let lcp = matches[0];
-    for (const m of matches) while (!m.startsWith(lcp)) lcp = lcp.slice(0, -1);
-    parts[parts.length - 1] = lcp;
-    inputEl.value = parts.join(' ');
-    print(matches.join('   '), 'term-dim');
-    scrollToInput();
+    inputEl.value = prefix + matches[0] + (isFirst ? ' ' : '');
+    comp.matches = [];
+    renderLine();
+    return;
   }
+  comp = { matches, idx: 0, prefix, value: '' };
+  applyCompletion();
+}
+
+function applyCompletion() {
+  if (!inputEl) return;
+  inputEl.value = comp.prefix + comp.matches[comp.idx];
+  comp.value = inputEl.value;
+  moveCaretEnd();
+  renderLine();
 }
 
 function moveCaretEnd() {
   if (!inputEl) return;
-  const v = inputEl.value;
-  requestAnimationFrame(() => inputEl!.setSelectionRange(v.length, v.length));
+  const n = inputEl.value.length;
+  inputEl.setSelectionRange(n, n);
 }
 
 /* ---------- snake 🐍 ---------- */
@@ -458,10 +482,45 @@ function saveHistory() {
 
 /* ---------- wiring ---------- */
 function updatePS1() {
-  document.querySelectorAll('.term-cwd').forEach((el) => (el.textContent = ':' + pretty(cwd)));
+  const p = pretty(cwd);
+  document.querySelectorAll('.term-cwd').forEach((el) => (el.textContent = ':' + p));
+  const title = document.querySelector('.term-title');
+  if (title) title.textContent = `joshuacarey@web: ${p} — zsh`;
+  const sp = document.querySelector('.status-path');
+  if (sp) sp.textContent = p;
 }
 function scrollToInput() {
-  requestAnimationFrame(() => inputEl?.scrollIntoView({ block: 'nearest' }));
+  // Scroll the document all the way to the bottom (past the sticky status bar).
+  requestAnimationFrame(() => {
+    const el = document.scrollingElement || document.documentElement;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+/* ---------- rendered line + block caret ---------- */
+let lineEl: HTMLElement | null = null;
+let typingTimer = 0;
+
+function renderLine() {
+  if (!inputEl || !lineEl) return;
+  const v = inputEl.value;
+  let pos = inputEl.selectionStart ?? v.length;
+  if (pos < 0) pos = v.length;
+  const under = v.slice(pos, pos + 1);
+  lineEl.textContent = '';
+  lineEl.appendChild(document.createTextNode(v.slice(0, pos)));
+  const caret = document.createElement('span');
+  caret.className = 'caret';
+  caret.textContent = under || ' ';
+  lineEl.appendChild(caret);
+  lineEl.appendChild(document.createTextNode(v.slice(pos + (under ? 1 : 0))));
+}
+
+function bumpTyping() {
+  if (!lineEl) return;
+  lineEl.classList.add('typing');
+  window.clearTimeout(typingTimer);
+  typingTimer = window.setTimeout(() => lineEl?.classList.remove('typing'), 450);
 }
 
 async function init() {
@@ -471,19 +530,35 @@ async function init() {
   if (!form || !inputEl || !outEl || form.dataset.wired) return;
   form.dataset.wired = '1';
 
+  lineEl = document.getElementById('term-line');
   loadHistory();
   cwd = [];
   await loadFS();
   updatePS1();
   welcome();
+  renderLine();
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const v = inputEl!.value;
     inputEl!.value = '';
+    comp.matches = [];
     exec(v, true);
+    renderLine();
   });
   inputEl.addEventListener('keydown', onKeyDown);
+  // keep the rendered line + block caret in sync with the hidden input
+  inputEl.addEventListener('input', () => {
+    comp.matches = [];
+    bumpTyping();
+    renderLine();
+  });
+  inputEl.addEventListener('keyup', renderLine);
+  inputEl.addEventListener('click', renderLine);
+  inputEl.addEventListener('select', renderLine);
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement === inputEl) renderLine();
+  });
 
   // Clickable scrollback: ls entries + links act like typed commands.
   outEl.addEventListener('click', (e) => {
@@ -497,12 +572,14 @@ async function init() {
     }
   });
 
-  const term = document.getElementById('terminal');
-  term?.addEventListener('mousedown', (e) => {
+  // The WHOLE terminal window is clickable to focus the prompt (like a real
+  // terminal) — except on links/buttons/files, or when selecting text.
+  const win = document.querySelector('.term-window');
+  win?.addEventListener('mousedown', (e) => {
     const t = e.target as HTMLElement;
-    if (t.tagName !== 'A' && !t.closest('.ls-entry') && !window.getSelection()?.toString()) {
-      setTimeout(() => inputEl?.focus(), 0);
-    }
+    if (t.closest('a, button, .ls-entry, input')) return;
+    if (window.getSelection()?.toString()) return;
+    setTimeout(() => inputEl?.focus({ preventScroll: true }), 0);
   });
 
   if (document.documentElement.getAttribute('data-theme') === 'dark') {
@@ -511,7 +588,16 @@ async function init() {
 }
 
 function welcome() {
-  print('joshuacarey@web — type ' + '`help`' + ' or click a file/folder below.', 'term-dim');
+  print('joshuacarey@web — type `help`, or click any file / folder below.', 'term-dim');
+  const hint = line('', 'term-dim');
+  hint.append('prefer a clean reading view? ');
+  const sw = document.createElement('button');
+  sw.type = 'button';
+  sw.className = 'term-link';
+  sw.setAttribute('data-theme-switch', '');
+  sw.textContent = 'switch to light mode →';
+  hint.appendChild(sw);
+  print(hint);
   print('');
   exec('ls', false);
 }
