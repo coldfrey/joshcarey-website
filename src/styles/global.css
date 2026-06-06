@@ -2452,53 +2452,28 @@ html.preboot::before {
 }
 
 /* =========================================================================
-   v5 — mobile dark terminal lives inside the *visual* viewport
-   iOS/Android raise the soft keyboard over the layout viewport, so a normal
-   page lets the prompt slip behind it. On touch devices we lock the terminal
-   window to window.visualViewport (--app-height / --app-top, set in JS), let
-   the scrollback scroll internally, and keep the prompt + status line pinned
-   just above the keyboard so you can always see what you type.
+   Mobile dark terminal = click-only. The soft keyboard made the live prompt
+   fiddly (and it kept fighting the visual viewport), so on touch devices we
+   drop the text input entirely: explore by tapping files / folders / links.
+   Simpler, robust, and it can't break. The page just scrolls normally.
    ========================================================================= */
 @media (pointer: coarse) {
-  [data-theme="dark"] .term-window {
-    position: fixed;
-    top: var(--app-top, 0px);
-    left: 0;
-    right: 0;
-    height: var(--app-height, 100dvh);
-    min-height: 0;
+  /* no typing on touch — navigation is by tapping */
+  #term-form {
+    display: none;
   }
-  /* title bar fills the notch / status-bar area so nothing peeks above it */
+  /* roomier tap targets for files / folders / links */
+  [data-theme="dark"] .ls-entry,
+  [data-theme="dark"] .ls-entry.ls-dir,
+  [data-theme="dark"] .cat-line .term-link {
+    display: inline-block;
+    padding-block: 0.2rem;
+  }
+  [data-theme="dark"] .term-ls {
+    gap: 0.35em 0.1em;
+  }
+  /* title bar clears the notch */
   [data-theme="dark"] .term-titlebar {
     padding-top: calc(0.6rem + env(safe-area-inset-top, 0px));
-  }
-  [data-theme="dark"] main {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    overflow: hidden;
-    padding: 0.75rem clamp(0.9rem, 4vw, 3rem) 0.4rem;
-    max-width: none;
-  }
-  [data-theme="dark"] #terminal {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-    width: 100%;
-  }
-  [data-theme="dark"] #term-out {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    min-height: 0;
-  }
-  [data-theme="dark"] #term-form {
-    flex: 0 0 auto;
-    padding-top: 0.15rem;
-  }
-  /* the prompt now pins itself; the status line no longer needs to stick */
-  [data-theme="dark"] .site-footer {
-    position: static;
   }
 }

@@ -40,6 +40,10 @@ let draft = '';
 const HKEY = 'term-history';
 const OPSKEY = 'term-fs-ops';
 
+// Touch devices get a click-only terminal: no text input, no soft keyboard —
+// just tap files / folders / links to explore. Keeps mobile simple & robust.
+const TOUCH = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
 const NEOFETCH = String.raw`
    ____      joshuacarey@web
   / __ \     ---------------
@@ -549,6 +553,16 @@ const commands: Record<string, Cmd> = {
       }
       const row = document.createElement('div');
       row.className = 'term-line term-ls';
+      // touch = no keyboard, so give an explicit tappable way back up a level
+      if (TOUCH && tsegs.length) {
+        const up = document.createElement('button');
+        up.type = 'button';
+        up.className = 'ls-entry ls-dir';
+        up.dataset.name = '..';
+        up.dataset.type = 'dir';
+        up.textContent = '../';
+        row.appendChild(up);
+      }
       for (const [name, node] of entries) {
         const s = document.createElement('button');
         s.type = 'button';
@@ -1882,54 +1896,38 @@ async function init() {
     }
   });
 
-  // The WHOLE terminal window is clickable/tappable to focus the prompt (like a
-  // real terminal) and — crucially on mobile — to pop up the soft keyboard.
-  // iOS/Android only raise the keyboard when focus() runs *synchronously* inside
-  // a user gesture, so we focus directly in the tap handler (no setTimeout) and
-  // listen on `click` (which fires for both mouse and touch and is the gesture
-  // browsers trust for programmatic focus).
-  const win = document.querySelector('.term-window');
-  const focusFromTap = (e: Event) => {
-    if (document.documentElement.getAttribute('data-theme') !== 'dark') return;
-    const t = e.target as HTMLElement;
-    if (t.closest('a, button, .ls-entry, input, .tui')) return;
-    if (window.getSelection()?.toString()) return;
-    inputEl?.focus({ preventScroll: true });
-  };
-  win?.addEventListener('click', focusFromTap);
-  // pointerup gives desktop the instant-focus feel without waiting for click
-  win?.addEventListener('pointerup', (e) => {
-    if ((e as PointerEvent).pointerType === 'mouse') focusFromTap(e);
-  });
-  // When the keyboard opens it shrinks the viewport; keep the prompt in view.
-  inputEl.addEventListener('focus', () => {
-    setTimeout(() => {
-      syncViewport();
-      scrollToInput();
-    }, 250);
-  });
-
-  // Track the visual viewport so the fixed terminal hugs the keyboard.
-  // (window/visualViewport listeners must bind once — init() re-runs per swap.)
-  syncViewport();
-  if (window.visualViewport && !viewportWired) {
-    viewportWired = true;
-    window.visualViewport.addEventListener('resize', () => {
-      syncViewport();
-      scrollToInput();
+  // Desktop only: the WHOLE terminal window is clickable to focus the prompt
+  // (like a real terminal). On touch there's no prompt to focus — navigation is
+  // by tapping files / folders / links — so we skip all keyboard wiring.
+  if (!TOUCH) {
+    const win = document.querySelector('.term-window');
+    const focusFromTap = (e: Event) => {
+      if (document.documentElement.getAttribute('data-theme') !== 'dark') return;
+      const t = e.target as HTMLElement;
+      if (t.closest('a, button, .ls-entry, input, .tui')) return;
+      if (window.getSelection()?.toString()) return;
+      inputEl?.focus({ preventScroll: true });
+    };
+    win?.addEventListener('click', focusFromTap);
+    win?.addEventListener('pointerup', (e) => {
+      if ((e as PointerEvent).pointerType === 'mouse') focusFromTap(e);
     });
-    window.visualViewport.addEventListener('scroll', syncViewport);
   }
 
   (window as any).__termSyncPath = termSyncPath;
 
-  if (document.documentElement.getAttribute('data-theme') === 'dark') {
+  if (!TOUCH && document.documentElement.getAttribute('data-theme') === 'dark') {
     setTimeout(() => inputEl?.focus(), 60);
   }
 }
 
 function welcome() {
-  print('joshuacarey@web — type `help`, or click any file / folder below.', 'term-dim');
+  print(
+    TOUCH
+      ? 'joshuacarey@web — tap any file or folder below to explore.'
+      : 'joshuacarey@web — type `help`, or click any file / folder below.',
+    'term-dim',
+  );
   const hint = line('', 'term-dim');
   hint.append('prefer a clean reading view? ');
   const sw = document.createElement('button');
@@ -1939,7 +1937,8 @@ function welcome() {
   sw.textContent = 'Boring Mode →';
   hint.appendChild(sw);
   print(hint);
-  print('it’s a real shell — try `ls /`, `cat /etc/passwd`, `mkdir notes`. (`reset` to undo.)', 'term-dim');
+  if (!TOUCH)
+    print('it’s a real shell — try `ls /`, `cat /etc/passwd`, `mkdir notes`. (`reset` to undo.)', 'term-dim');
   print('');
   exec('ls', false);
 }
