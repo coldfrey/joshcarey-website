@@ -11,19 +11,21 @@
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "Geist Mono Variable", "SF Mono", ui-monospace, "JetBrains Mono",
     Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --font-serif: "Fraunces Variable", "Iowan Old Style", "Palatino Linotype",
+    Palatino, Georgia, "Times New Roman", serif;
 
-  /* LIGHT — Granola warm-white, refined */
-  --bg: #faf8f3;
-  --bg-elev: #fffdf9;
-  --bg-sunken: #f3f0e8;
-  --fg: #1f1d1a;
-  --muted: #6b665d;
-  --faint: #9c968b;
-  --border: #ece8df;
-  --border-strong: #ddd7ca;
-  --accent: #c2410c;
-  --accent-hover: #9a330a;
-  --selection: #f5e6d6;
+  /* LIGHT — warm editorial ivory (Granola/Anthropic) */
+  --bg: #faf6ec;
+  --bg-elev: #fffdf7;
+  --bg-sunken: #f1ead9;
+  --fg: #221e17;
+  --muted: #6c655a;
+  --faint: #9b9385;
+  --border: #ebe3d3;
+  --border-strong: #dcd2bd;
+  --accent: #b5451f;
+  --accent-hover: #8f3415;
+  --selection: #f3e4ce;
   --glow: none;
   --shadow-tint: 28 25 20;
   --elev-1: 0 1px 2px rgba(28 25 20 / 0.04), 0 8px 24px -12px rgba(28 25 20 / 0.12);
@@ -2157,4 +2159,50 @@ html.preboot::before {
   background: #0a0702;
   border-radius: 4px;
   box-shadow: 0 0 40px -12px rgba(255, 176, 0, 0.3);
+}
+
+/* =========================================================================
+   Light — warm editorial: Fraunces serif display headings
+   (dark mode keeps mono — these are light-only)
+   ========================================================================= */
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] .hero h1,
+[data-theme="light"] .page-title,
+[data-theme="light"] .post-header h1,
+[data-theme="light"] .tl-title,
+[data-theme="light"] .prose h2,
+[data-theme="light"] .prose h3 {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-weight: 470;
+  letter-spacing: -0.005em;
+}
+[data-theme="light"] .hero h1 {
+  font-weight: 490;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+[data-theme="light"] .post-header h1 {
+  font-weight: 490;
+  line-height: 1.1;
+  font-size: 2.3rem;
+}
+[data-theme="light"] .tl-title {
+  font-weight: 520;
+  font-size: 1.25rem;
+}
+/* italic serif tagline = editorial flourish */
+[data-theme="light"] .hero .tagline {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+/* a touch more reading warmth in prose */
+[data-theme="light"] .prose {
+  font-size: 1.08rem;
+  line-height: 1.78;
 }
