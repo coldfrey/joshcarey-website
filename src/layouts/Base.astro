@@ -106,8 +106,8 @@ const year = new Date().getFullYear();
     <!-- AI answer engines & agents: see /agents.txt and /llms.txt -->
     <link rel="llms" href="/llms.txt" />
     <!-- Resolve theme before paint: explicit stored pref wins; otherwise
-         desktop follows system, but PHONES default to light (the terminal is a
-         desktop-first experience). If dark, add `preboot` so an opaque CRT cover
+         everything defaults to light (the terminal/dark is an opt-in
+         experience). If dark, add `preboot` so an opaque CRT cover
          paints BEFORE the terminal is visible; JS runs the boot then clears it. -->
     <script is:inline>
       window.__resolveTheme = function () {
@@ -124,12 +124,10 @@ const year = new Date().getFullYear();
             return 'light';
           }
         }
-        // Desktop: explicit saved pref wins, else follow the OS.
+        // Desktop: explicit saved pref wins, else default to light.
         var t = localStorage.getItem('theme');
         if (t === 'light' || t === 'dark') return t;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light';
+        return 'light';
       };
       (function () {
         try {
