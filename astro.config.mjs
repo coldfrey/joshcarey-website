@@ -10,6 +10,14 @@ const SITE = 'https://joshuacarey.org';
 export default defineConfig({
   site: SITE,
   integrations: [sitemap()],
+  // Prefetch in-viewport links (the nav is always on-screen) so the next page
+  // is already cached by the time you click it. Without this, ClientRouter only
+  // prefetches on hover — useless on a mobile tap — so every nav click waited on
+  // a full network round trip before the crossfade could even start.
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: 'viewport',
+  },
   markdown: {
     shikiConfig: {
       themes: {
