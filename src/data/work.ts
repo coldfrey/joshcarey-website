@@ -70,15 +70,6 @@ export const work: WorkItem[] = [
     stack: ['Python', 'TypeScript', 'LLMs', 'GCP'],
   },
   {
-    // TODO(josh): confirm purchase date; add links/images when ready
-    title: 'Pirate Life',
-    kind: 'life',
-    description: 'Buying, restoring and sailing a 1963 wooden sailing boat.',
-    date: '2023',
-    range: '2023 - 2024',
-    status: 'shipped',
-  },
-  {
     title: 'Magic AI Workouts',
     kind: 'project',
     description: 'Workout tracking app built for a Magic AI tech challenge.',
@@ -107,6 +98,16 @@ export const work: WorkItem[] = [
     status: 'shipped',
     branch: 'contract',
     stack: ['Flutter', 'Firebase', 'BLE'],
+  },
+  {
+    // TODO(josh): add images when ready
+    title: 'Pirate Life',
+    kind: 'life',
+    description: 'Buying, restoring and sailing a 1963 wooden sailing boat.',
+    date: '2023',
+    range: '2023 - 2024',
+    status: 'shipped',
+    links: [{ label: 'Thoughts', href: 'https://www.joshuacarey.org/writing/a-sinking-ship/' }],
   },
   {
     title: 'Kitefoil Portland → Southampton',
