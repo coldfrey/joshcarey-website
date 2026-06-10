@@ -901,17 +901,24 @@ a:hover {
   margin-left: 0;
 }
 
+.tl-scene {
+  position: relative;
+  margin-top: 1.5rem;
+  /* JS adds bottom padding (scroll runway) so pac-man can eat to the end */
+}
 .timeline {
   list-style: none;
-  margin: 1.5rem 0 0;
+  margin: 0;
   padding: 0;
   position: relative;
 }
+/* --tl-eaten (px, set from JS on .tl-scene) is how much of the spine pac-man
+   has chomped away from the top */
 .timeline::before {
   content: "";
   position: absolute;
   left: 9px;
-  top: 8px;
+  top: calc(8px + var(--tl-eaten, 0px));
   bottom: 8px;
   width: 2px;
   background: var(--border-strong);
@@ -920,14 +927,168 @@ a:hover {
   content: "";
   position: absolute;
   left: 9px;
-  top: 8px;
+  top: calc(8px + var(--tl-eaten, 0px));
   width: 2px;
-  height: calc(100% - 16px);
+  height: max(0px, calc(100% - 16px - var(--tl-eaten, 0px)));
   background: linear-gradient(var(--accent), color-mix(in srgb, var(--accent) 20%, transparent));
   transform-origin: top;
   transform: scaleY(1);
 }
-/* (spine is static — no scroll-driven fill) */
+
+/* ---- pac-man riding the eaten edge of the spine, mouth facing down ---- */
+.tl-pac {
+  position: absolute;
+  z-index: 2;
+  left: 10px;
+  /* --tl-pac-y is unclamped below 0 so pac can hover at his viewport spot,
+     munching air, before the spine's top has reached him */
+  top: calc(8px + var(--tl-pac-y, 0px));
+  width: 26px;
+  height: 26px;
+  /* built facing right, rotated to chomp downward */
+  transform: translate(-50%, -50%) rotate(90deg);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.22));
+  /* hidden until scrolling actually starts eating the spine */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s, transform 0.3s ease;
+}
+.tl-pac.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+/* heading back up the spine: turn around, mouth first */
+.tl-pac.is-reversed {
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+.tl-pac::after {
+  /* eye */
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 14px;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: #1c2230;
+  z-index: 1;
+}
+.tl-pac-jaw {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: #fbc531;
+}
+.tl-pac-jaw-top {
+  top: 0;
+  border-radius: 13px 13px 0 0;
+  transform-origin: 50% 100%;
+  transform: rotate(-24deg);
+}
+.tl-pac-jaw-bottom {
+  bottom: 0;
+  border-radius: 0 0 13px 13px;
+  transform-origin: 50% 0%;
+  transform: rotate(24deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tl-pac.is-chomping .tl-pac-jaw-top {
+    animation: tl-chomp-top 0.22s ease-in-out infinite;
+  }
+  .tl-pac.is-chomping .tl-pac-jaw-bottom {
+    animation: tl-chomp-bottom 0.22s ease-in-out infinite;
+  }
+  @keyframes tl-chomp-top {
+    0%,
+    100% {
+      transform: rotate(-26deg);
+    }
+    50% {
+      transform: rotate(-2deg);
+    }
+  }
+  @keyframes tl-chomp-bottom {
+    0%,
+    100% {
+      transform: rotate(26deg);
+    }
+    50% {
+      transform: rotate(2deg);
+    }
+  }
+}
+
+/* dots, connector stubs and year chips vanish once pac-man passes them */
+.tl-dot,
+.tl-yearmark {
+  transition: opacity 0.25s ease, scale 0.25s ease;
+}
+.tl-entry.is-eaten .tl-dot,
+.tl-yearmark.is-eaten {
+  opacity: 0;
+  scale: 0.2;
+}
+.tl-entry.is-eaten .tl-rail::before {
+  opacity: 0;
+}
+
+/* a fully-eaten card poofs into thin air... */
+.tl-card.is-poofed {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tl-card.is-poofed {
+    animation: tl-poof 0.5s ease forwards;
+  }
+  /* ...and reassembles itself from scraps on the way back up */
+  .tl-card.is-rebuilding {
+    animation: tl-rebuild 0.45s ease-out forwards;
+  }
+  @keyframes tl-poof {
+    from {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      filter: blur(10px);
+      transform: scale(1.12) translateY(-14px);
+    }
+  }
+  @keyframes tl-rebuild {
+    0% {
+      opacity: 0;
+      filter: blur(8px);
+      clip-path: inset(0 10% 70% 0);
+      transform: translateY(-5px);
+    }
+    60% {
+      opacity: 0.85;
+      filter: blur(2px);
+      clip-path: inset(0);
+      transform: translateY(-1px);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(0);
+      clip-path: inset(0);
+      transform: none;
+    }
+  }
+}
+
+/* first paint after load / theme switch: snap to state, no theatrics */
+.tl-noanim .tl-card,
+.tl-noanim .tl-dot,
+.tl-noanim .tl-yearmark,
+.tl-noanim .tl-pac {
+  animation: none !important;
+  transition: none !important;
+}
 
 .tl-lanehead,
 .tl-yearmark {
@@ -1088,8 +1249,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* (timeline entries are static — no scroll-triggered reveal) */
-
 /* ---- wide screens: two lanes around a center spine ---- */
 @media (min-width: 880px) {
   .timeline {
@@ -1098,6 +1257,9 @@ a:hover {
   .timeline::before,
   .timeline::after {
     left: calc(50% - 1px);
+  }
+  .tl-pac {
+    left: 50%;
   }
 
   .tl-lanehead {
@@ -1175,6 +1337,7 @@ a:hover {
     top: 11px;
     height: 2px;
     background: var(--border);
+    transition: opacity 0.25s ease;
   }
   .tl-entry[data-side="left"] .tl-rail::before {
     left: 0;

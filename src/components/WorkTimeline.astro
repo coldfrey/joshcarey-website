@@ -49,7 +49,12 @@ function allLinks(item: WorkItem): WorkLink[] {
   <span></span>
   <span>Projects</span>
 </div>
-<ol class="timeline doc-only" aria-label="Work and projects timeline">
+<div class="tl-scene doc-only">
+<div class="tl-pac" aria-hidden="true">
+  <span class="tl-pac-jaw tl-pac-jaw-top"></span>
+  <span class="tl-pac-jaw tl-pac-jaw-bottom"></span>
+</div>
+<ol class="timeline" aria-label="Work and projects timeline">
   {
     rows.map((row, i) => (
       <li
@@ -111,6 +116,7 @@ function allLinks(item: WorkItem): WorkLink[] {
     ))
   }
 </ol>
+</div>
 
 {/* ============ DARK: git log --oneline ============ */}
 <div class="gitlog term-only">

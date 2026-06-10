@@ -24,6 +24,8 @@ const isTyping = (el: EventTarget | null) => {
 /* ---------------- theme + CRT boot ---------------- */
 function applyTheme(t: 'light' | 'dark') {
   document.documentElement.setAttribute('data-theme', t);
+  // the light timeline is display:none in dark — remeasure once it's visible
+  if (t === 'light') requestAnimationFrame(() => syncTimelinePac());
   try {
     localStorage.setItem('theme', t);
     // session pref drives the phone default (light-first, dark per-session)
@@ -466,6 +468,144 @@ function onClick(e: MouseEvent) {
   if (commit && !t.closest('a')) return toggleCommit(commit);
 }
 
+/* ---------------- timeline pac-man (light) ----------------
+   As the page scrolls, pac-man holds a fixed spot in the viewport while the
+   spine feeds up into his mouth: --tl-eaten (px) trims the spine's top, and
+   dots / year chips wink out as they pass him. Once normal scrolling runs
+   out, he walks down the screen by himself to finish eating the timeline. */
+let pacChompTimer = 0;
+let pacExtra = 0; // munch progress past his anchor, driven by overscroll (px)
+let pacRemaining = 0; // spine left to eat, updated by syncTimelinePac
+let pacPrevY = 0;
+let pacTouchY = 0;
+
+function pacAtBottom() {
+  return (
+    window.innerHeight + window.scrollY >=
+    document.documentElement.scrollHeight - 2
+  );
+}
+
+// Continued scrolling at the page bottom feeds pac instead of the scrollbar,
+// at the same rate as a normal scroll; scrolling up unwinds him first.
+function pacConsumeScroll(dy: number): boolean {
+  const scene = document.querySelector<HTMLElement>('.tl-scene');
+  if (!scene || scene.offsetParent === null) return false;
+  if (dy > 0) {
+    if (!pacAtBottom() || pacRemaining <= 0.5) return false;
+  } else if (dy >= 0 || pacExtra <= 0) {
+    return false;
+  }
+  pacExtra = Math.max(0, pacExtra + dy);
+  syncTimelinePac(true);
+  return true;
+}
+
+function onPacWheel(e: WheelEvent) {
+  if (pacConsumeScroll(e.deltaY)) e.preventDefault();
+}
+
+function onPacTouchStart(e: TouchEvent) {
+  pacTouchY = e.touches[0].clientY;
+}
+
+function onPacTouchMove(e: TouchEvent) {
+  const y = e.touches[0].clientY;
+  const dy = pacTouchY - y; // positive = scrolling down
+  pacTouchY = y;
+  if (pacConsumeScroll(dy) && e.cancelable) e.preventDefault();
+}
+
+function syncTimelinePac(scrolling = false) {
+  const scene = document.querySelector<HTMLElement>('.tl-scene');
+  if (!scene || scene.offsetParent === null) return; // absent or dark mode
+  const pac = scene.querySelector<HTMLElement>('.tl-pac');
+  const ol = scene.querySelector<HTMLElement>('.timeline');
+  if (!pac || !ol) return;
+
+  // first sync after a load / theme switch snaps to state without animating
+  if (!scene.dataset.pacInit) {
+    scene.dataset.pacInit = '1';
+    pacExtra = 0;
+    pacPrevY = 0;
+    scene.classList.add('tl-noanim');
+    requestAnimationFrame(() => scene.classList.remove('tl-noanim'));
+  }
+
+  const rect = ol.getBoundingClientRect();
+  // pac-man holds position in the upper part of the viewport, below the
+  // sticky nav, so entries get eaten a moment before they'd scroll away
+  const bar = document.querySelector('.topbar');
+  const anchor = (bar ? bar.getBoundingClientRect().bottom : 56) + 64;
+  const max = Math.max(0, rect.height - 16); // spine ends 8px short of each end
+  const base = anchor - rect.top;
+  // the munch boundary may run a little past the spine's end so the last
+  // card's title is still reachable; the spine itself clamps at `max`
+  pacExtra = Math.max(0, Math.min(pacExtra, rect.height - base));
+  const eatenRaw = Math.max(0, Math.min(rect.height, base + pacExtra));
+  const eaten = Math.min(max, eatenRaw);
+  scene.style.setProperty('--tl-eaten', eaten.toFixed(1) + 'px');
+  pacRemaining = rect.height - eatenRaw;
+
+  // pac floats at the anchor even before the spine's top reaches him
+  // (munching thin air), then rides the eaten edge down to the spine's end.
+  // Clamped a hair short of the scene's bottom edge: poking past it would
+  // grow the page's scrollHeight and feed back into the scroll position.
+  const pacY = Math.min(max - 6, base + pacExtra);
+  scene.style.setProperty('--tl-pac-y', pacY.toFixed(1) + 'px');
+
+  // he shows up as soon as the page starts scrolling at all
+  pac.classList.toggle('is-active', window.scrollY > 4);
+
+  // face wherever he's headed: down the spine, or back up while retreating
+  // (2px deadband so sub-pixel layout noise can't flip him)
+  if (Math.abs(pacY - pacPrevY) > 2) {
+    pac.classList.toggle('is-reversed', pacY < pacPrevY);
+    pacPrevY = pacY;
+  }
+
+  // chomp while scrolling, even with nothing in reach
+  if (scrolling && !reduceMotion()) {
+    pac.classList.add('is-chomping');
+    window.clearTimeout(pacChompTimer);
+    pacChompTimer = window.setTimeout(
+      () => pac.classList.remove('is-chomping'),
+      180,
+    );
+  }
+
+  // anything on the spine above pac-man's mouth has been eaten
+  const boundary = rect.top + 8 + eatenRaw;
+  scene.querySelectorAll<HTMLElement>('.tl-entry').forEach((entry) => {
+    const dot = entry.querySelector('.tl-dot');
+    if (!dot) return;
+    const r = dot.getBoundingClientRect();
+    entry.classList.toggle('is-eaten', r.top + r.height / 2 < boundary);
+  });
+  scene.querySelectorAll<HTMLElement>('.tl-yearmark').forEach((mark) => {
+    const r = mark.getBoundingClientRect();
+    mark.classList.toggle('is-eaten', r.top + r.height / 2 < boundary);
+  });
+
+  // the moment pac-man eats a card's title link, the whole experience poofs
+  // out of existence; scrolling back up rebuilds it from scraps
+  scene.querySelectorAll<HTMLElement>('.tl-card').forEach((card) => {
+    const probe = card.querySelector('.tl-title') ?? card;
+    const gone = probe.getBoundingClientRect().bottom < boundary;
+    if (gone === card.classList.contains('is-poofed')) return;
+    if (gone) {
+      card.classList.remove('is-rebuilding');
+      card.classList.add('is-poofed');
+    } else {
+      card.classList.remove('is-poofed');
+      if (!reduceMotion() && !scene.classList.contains('tl-noanim')) {
+        card.classList.add('is-rebuilding');
+        window.setTimeout(() => card.classList.remove('is-rebuilding'), 600);
+      }
+    }
+  });
+}
+
 /* ---------------- sticky-nav border on scroll (light) ---------------- */
 function syncNavScrolled() {
   const bar = document.querySelector('.topbar');
@@ -495,6 +635,7 @@ function initBlurUp() {
 function init() {
   initTermFont();
   syncNavScrolled();
+  syncTimelinePac();
   initBlurUp();
   // Boot sequence on a fresh dark load (the head added `preboot`).
   if (document.documentElement.classList.contains('preboot')) {
@@ -505,6 +646,13 @@ function init() {
   document.addEventListener('click', onClick);
   document.addEventListener('keydown', onKey);
   window.addEventListener('scroll', syncNavScrolled, { passive: true });
+  window.addEventListener('scroll', () => syncTimelinePac(true), {
+    passive: true,
+  });
+  window.addEventListener('resize', () => syncTimelinePac());
+  window.addEventListener('wheel', onPacWheel, { passive: false });
+  window.addEventListener('touchstart', onPacTouchStart, { passive: true });
+  window.addEventListener('touchmove', onPacTouchMove, { passive: false });
   // Clicking the dialog backdrop closes the lightbox.
   document.addEventListener('click', (e) => {
     const dlg = document.getElementById('lightbox') as HTMLDialogElement | null;
