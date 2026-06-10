@@ -24,8 +24,6 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         run: |
-          pnpm exec wrangler pages project create joshcarey-website \
-            --production-branch=main || true
           pnpm exec wrangler pages deploy dist \
             --project-name=joshcarey-website \
             --branch=main
