@@ -14,7 +14,7 @@ const posts = (await getCollection('blog'))
   .slice(0, 3);
 const fmt = (d: Date) =>
   d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-const selectedWork = work.slice(0, 3);
+const selectedWork = work.filter((i) => (i.kind ?? 'work') === 'work').slice(0, 3);
 ---
 
 <Base>
@@ -42,7 +42,7 @@ const selectedWork = work.slice(0, 3);
       </div>
     </div>
 
-    <p class="whoami term-only out">joshua carey — i build things on the web</p>
+    <p class="whoami term-only out">joshua carey - i build things on the web</p>
   </section>
 
   {/* ---- about ---- */}
@@ -59,8 +59,8 @@ const selectedWork = work.slice(0, 3);
   <section class="block term-only">
     <Prompt cmd="ls" />
     <ul class="dir-list out">
-      <li><a href="/work">work/</a></li>
-      <li><a href="/blog">writing/</a></li>
+      <li><a href="/timeline">timeline/</a></li>
+      <li><a href="/writing">writing/</a></li>
       <li><a href="/gallery">gallery/</a></li>
       <li><span class="dir-file">about.txt</span></li>
     </ul>
@@ -75,7 +75,7 @@ const selectedWork = work.slice(0, 3);
           selectedWork.map((item) => (
             <li>
               <a
-                href={item.href && item.href !== '#' ? item.href : '/work'}
+                href={item.href && item.href !== '#' ? item.href : '/timeline'}
                 target={item.href && item.href.startsWith('http') ? '_blank' : undefined}
                 rel={item.href && item.href.startsWith('http') ? 'noopener' : undefined}
               >
@@ -86,7 +86,7 @@ const selectedWork = work.slice(0, 3);
           ))
         }
       </ul>
-      <a class="more-link" href="/work">All work →</a>
+      <a class="more-link" href="/timeline">Full timeline →</a>
     </section>
 
     <section>
@@ -95,7 +95,7 @@ const selectedWork = work.slice(0, 3);
         {
           posts.map((post) => (
             <li>
-              <a href={`/blog/${post.id}/`}>
+              <a href={`/writing/${post.id}/`}>
                 <span class="mini-title">{post.data.title}</span>
                 <time class="mini-date">{fmt(post.data.date)}</time>
               </a>
@@ -103,7 +103,7 @@ const selectedWork = work.slice(0, 3);
           ))
         }
       </ul>
-      <a class="more-link" href="/blog">All writing →</a>
+      <a class="more-link" href="/writing">All writing →</a>
     </section>
   </div>
 </Base>

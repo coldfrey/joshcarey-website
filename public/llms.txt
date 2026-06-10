@@ -22,9 +22,9 @@ machine learning, reinforcement learning, and full-stack cloud software
 ## Pages
 
 - [Home](https://joshuacarey.org/): Overview and introduction.
-- [Work](https://joshuacarey.org/work): Career timeline — AI roles, founding
-  engineering, and projects.
-- [Writing](https://joshuacarey.org/blog): Notes and articles.
+- [Timeline](https://joshuacarey.org/timeline): Career timeline - AI roles, founding
+  engineering, projects, and life.
+- [Writing](https://joshuacarey.org/writing): Notes and articles.
 - [Gallery](https://joshuacarey.org/gallery): Photography.
 
 ## For AI agents

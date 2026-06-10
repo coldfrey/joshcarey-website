@@ -1,73 +1,126 @@
 ---
 import Prompt from './Prompt.astro';
-import { work, commitHash, type WorkItem } from '../data/work';
+import { work, commitHash, commitType, branchRef, side, type WorkItem, type WorkLink } from '../data/work';
 
 // git decorations like (HEAD -> main, tag: v1.0)
 function decorations(item: WorkItem): string[] {
   const refs: string[] = [];
-  if (item.status === 'active') refs.push('HEAD -> main');
-  if (item.branch && item.branch !== 'main') refs.push(item.branch);
+  if (item.status === 'active' && (item.kind ?? 'work') === 'work') refs.push('HEAD -> main');
+  const branch = branchRef(item);
+  if (branch) refs.push(branch);
   if (item.tag) refs.push(`tag: ${item.tag}`);
   return refs;
 }
 
-const typeOf = (item: WorkItem) =>
-  item.status === 'archived' ? 'chore' : 'feat';
+function refClass(r: string): string {
+  if (r.startsWith('tag:')) return 'ref-tag';
+  if (r.startsWith('HEAD')) return 'ref-head';
+  if (r.startsWith('proj/')) return 'ref-proj';
+  if (r.startsWith('life/')) return 'ref-life';
+  return 'ref-branch';
+}
+
+const isExternal = (href: string) => /^https?:/.test(href);
+
+// Light-mode rows: a `pair: true` item shares a row with the previous entry
+// (one card each side of the spine). Everything else gets its own row.
+const rows: WorkItem[][] = [];
+for (const item of work) {
+  const prev = rows[rows.length - 1];
+  if (item.pair && prev?.length === 1 && side(prev[0]) !== side(item)) prev.push(item);
+  else rows.push([item]);
+}
+const rowSide = (row: WorkItem[]) => (row.length === 2 ? 'both' : side(row[0]));
+
+// title link + extra links, deduped, for the light links row and dark git show
+function allLinks(item: WorkItem): WorkLink[] {
+  const links: WorkLink[] = [];
+  if (item.href) links.push({ label: 'site', href: item.href });
+  for (const l of item.links ?? []) {
+    if (!links.some((x) => x.href === l.href)) links.push(l);
+  }
+  return links;
+}
 ---
 
-{/* ============ LIGHT: editorial timeline ============ */}
-<ol class="timeline doc-only" aria-label="Work timeline">
+{/* ============ LIGHT: two-lane editorial timeline ============ */}
+<div class="tl-lanehead doc-only" aria-hidden="true">
+  <span>Work</span>
+  <span></span>
+  <span>Projects</span>
+</div>
+<ol class="timeline doc-only" aria-label="Work and projects timeline">
   {
-    work.map((item, i) => (
-      <li class="tl-entry" style={`--i:${i}`}>
+    rows.map((row, i) => (
+      <li
+        class="tl-entry"
+        data-side={rowSide(row)}
+        data-kind={row[0].kind ?? 'work'}
+        style={`--i:${i}`}
+      >
+        {(i === 0 || rows[i - 1][0].date !== row[0].date) && (
+          <span class="tl-yearmark" aria-hidden="true">{row[0].date}</span>
+        )}
         <div class="tl-rail">
-          <span class="tl-dot" data-status={item.status} />
+          <span class="tl-dot" data-status={row[0].status} data-kind={row[0].kind ?? 'work'} />
         </div>
-        <div class="tl-card">
-          <div class="tl-yearbig" aria-hidden="true">{item.date}</div>
-          <div class="tl-year">
-            <time>{item.range ?? item.date}</time>
-            {item.status === 'active' && <span class="tl-live">live</span>}
-          </div>
-          <h3 class="tl-title">
-            {item.href ? (
-              <a href={item.href} target="_blank" rel="noopener">
-                {item.title}
-              </a>
-            ) : (
-              item.title
+        {row.map((item) => (
+          <div class="tl-card" data-side={side(item)}>
+            <div class="tl-yearbig" aria-hidden="true">{item.date}</div>
+            <div class="tl-year">
+              <time>{item.range ?? item.date}</time>
+              {item.status === 'active' && <span class="tl-live">live</span>}
+              {side(item) === 'right' && (
+                <span class="tl-kind">{item.kind === 'project' ? 'project' : 'life'}</span>
+              )}
+            </div>
+            <h3 class="tl-title">
+              {item.href ? (
+                <a href={item.href} target="_blank" rel="noopener">
+                  {item.title}
+                </a>
+              ) : (
+                item.title
+              )}
+            </h3>
+            {item.role && <p class="tl-role">{item.role}</p>}
+            <p class="tl-desc">{item.description}</p>
+            {item.highlights && (
+              <ul class="tl-highlights">
+                {item.highlights.map((h) => (
+                  <li>{h}</li>
+                ))}
+              </ul>
             )}
-          </h3>
-          {item.role && <p class="tl-role">{item.role}</p>}
-          <p class="tl-desc">{item.description}</p>
-          {item.highlights && (
-            <ul class="tl-highlights">
-              {item.highlights.map((h) => (
-                <li>{h}</li>
-              ))}
-            </ul>
-          )}
-          {item.stack && (
-            <ul class="tl-stack">
-              {item.stack.map((s) => (
-                <li>{s}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+            {item.links && item.links.length > 0 && (
+              <ul class="tl-links">
+                {item.links.map((l) => (
+                  <li>
+                    {isExternal(l.href) ? (
+                      <a href={l.href} target="_blank" rel="noopener">↗ {l.label}</a>
+                    ) : (
+                      <a href={l.href}>→ {l.label}</a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
       </li>
     ))
   }
 </ol>
 
-{/* ============ DARK: git log --graph ============ */}
+{/* ============ DARK: git log --oneline ============ */}
 <div class="gitlog term-only">
-  <Prompt cmd="git log --graph --oneline --decorate" path="~/work" />
+  <Prompt cmd="git log --oneline --decorate" path="~/timeline" />
   <div class="gitlog-body" role="list">
     {
       work.map((item, i) => {
         const refs = decorations(item);
         const hash = commitHash(item.title + item.date);
+        const links = allLinks(item);
         return (
           <div
             class="commit"
@@ -81,19 +134,11 @@ const typeOf = (item: WorkItem) =>
               <span class="hash">{hash}</span>
               {refs.length > 0 && (
                 <span class="decorate">({refs.map((r, j) => (
-                  <span
-                    class={
-                      r.startsWith('tag:')
-                        ? 'ref-tag'
-                        : r.startsWith('HEAD')
-                          ? 'ref-head'
-                          : 'ref-branch'
-                    }
-                  >{j > 0 ? ', ' : ''}{r}</span>
+                  <span class={refClass(r)}>{j > 0 ? ', ' : ''}{r}</span>
                 ))})</span>
               )}
               <span class="subject">
-                <span class="ctype">{typeOf(item)}:</span> {item.title}
+                <span class={`ctype ctype-${commitType(item)}`}>{commitType(item)}:</span> {item.title}
               </span>
             </div>
             <div class="commit-body">
@@ -132,14 +177,20 @@ const typeOf = (item: WorkItem) =>
                     <span class="cb-add">+ {h}</span>
                   </p>
                 ))}
-                {item.href && (
+                {links.map((l) => (
                   <p class="cb-line">
                     <span class="graph">│</span>
-                    <a class="cb-link" href={item.href} target="_blank" rel="noopener">
-                      → open {item.href}
-                    </a>
+                    {isExternal(l.href) ? (
+                      <a class="cb-link" href={l.href} target="_blank" rel="noopener">
+                        → {l.label}: {l.href}
+                      </a>
+                    ) : (
+                      <a class="cb-link" href={l.href}>
+                        → {l.label}: {l.href}
+                      </a>
+                    )}
                   </p>
-                )}
+                ))}
               </div>
             </div>
             <p class="cb-line cb-gap"><span class="graph">│</span></p>

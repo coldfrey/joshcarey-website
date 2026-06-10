@@ -26,6 +26,37 @@ export interface GalleryItem {
 
 export const gallery: GalleryItem[] = [
   {
+    src: img('kitefoil-race.jpg'),
+    alt: 'A foil kite swooping low over a kitefoiler racing on a mountain lake',
+    title: 'Foil race',
+    file: 'kitefoil-race.jpg',
+    date: '2025-04-08',
+    size: '181K',
+    w: 1322,
+    h: 594,
+    span: 'wide',
+  },
+  {
+    src: img('kitefoil-closeup.jpeg'),
+    alt: 'A kitefoiler in helmet and wetsuit leaning hard upwind, spray flying',
+    title: 'Race pace',
+    file: 'kitefoil-closeup.jpeg',
+    date: '2019-05-20',
+    size: '203K',
+    w: 1086,
+    h: 724,
+  },
+  {
+    src: img('windsurf-foiling.jpeg'),
+    alt: 'A windsurfer airborne on a hydrofoil board above choppy water',
+    title: 'Windfoil flight',
+    file: 'windsurf-foiling.jpeg',
+    date: '2020-02-01',
+    size: '192K',
+    w: 1024,
+    h: 768,
+  },
+  {
     src: img('lava-and-stars.jpg'),
     alt: 'A glowing lava flow beneath a star-filled night sky',
     title: 'Lava & stars',

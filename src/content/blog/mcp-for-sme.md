@@ -16,11 +16,15 @@ Now we can take this USB analogy and run with it. Say, instead of just having a 
 
 Additionally, we store **Skills** on this USB (MCP). What is a skill? A skill is like a cookbook of how to do something; in essence, it is just a very large prompt that can be reused. 'How to make a multi yacht proposal email' is a prime example of a Skill. This process involves several steps, e.g. understand what the user wants, clone the template, replace images, find brochures… and so on. There are multiple steps that we do not want to have to keep repeating to our general purpose AI! So we put these skills on the MCP. Skills serve a very important function here: without them the agent needs its hand held through every multi step process; with them, it has the confidence to keep going without always asking for more direction.
 
+![Diagram: inside an MCP server - tools, knowledge and skills behind a permissions and access control layer](media:inside_mcp_server_detailed.svg)
+
 Now we are in a position where any AI that we provide our MCP to has the knowledge and underlying business processes, has a set of instructions for how to do long running workflows, and has a full toolbox to be able to work across our digital services.
 
 For lots of businesses that’s job done, plug your MCP into Claude and you’re away.
 
 For us we had a slightly different dilemma at hand. We already had a custom agent build with lots of tools, WhatsApp as the interface, and doing a job. Where to go from here? Initially it seemed attractive to just scrap this WhatsApp agent and move directly to a big AI team plan. Everyone gets their own account with the tools all good. Not quite. The WhatsApp agent fundamentally did a good job, it started as a super low friction way of collecting info from other conversations and taking notes. Call it a shared note taking agent that added the notes directly into the CRM on the appropriate contacts. Now this agent could do other things as well but it really shone in how streamlined it was - no faff, no confirmations, just action. So again, where to go? The answer as you may imagine is presented to us by MCP. One server multiple clients. We replace all the tools in the WhatsApp agent with just this MCP server. All the business logic, permissions policies, access control, skills etc… is still centralised. One reusable piece of code. 
+
+![Diagram: four AI clients call one MCP server, which makes one-way calls to the CRM, file storage, database and search](media:mcp_hub_one_way_call_flow.svg)
 
 Removing all the tools from the WhatsApp agent not only simplified that whole codebase down hugely but also improved the performance. 
 

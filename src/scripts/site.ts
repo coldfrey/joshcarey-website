@@ -90,10 +90,10 @@ const BOOT_LINES = [
   'joshOS 2.0  (c) 2026 joshuacarey',
   '[ ok ] cpu: 1 core online',
   '[ ok ] mem: 16384K OK',
-  '[ ok ] mount / : about work writing gallery',
+  '[ ok ] mount / : about timeline writing gallery',
   '[ ok ] amber-crt display driver',
   'login: joshuacarey (auto)',
-  'welcome — type `help`',
+  'welcome - type `help`',
 ];
 
 let booting = false;
@@ -187,8 +187,8 @@ function pageForTerminalFile(): string | null {
   const h = location.hash.replace(/^#/, '');
   const p = new URLSearchParams(h).get('p');
   if (!p) return null;
-  if (p.startsWith('writing/') && p.endsWith('.md')) return '/blog/' + p.slice(8, -3) + '/';
-  if (p.startsWith('work/')) return '/work/';
+  if (p.startsWith('writing/') && p.endsWith('.md')) return '/writing/' + p.slice(8, -3) + '/';
+  if (p.startsWith('timeline/')) return '/timeline/';
   if (p.startsWith('gallery/')) return '/gallery/';
   return null;
 }
@@ -246,7 +246,7 @@ function fillLightbox(i: number) {
   };
   img.src = el.dataset.full || '';
   img.alt = el.dataset.title || '';
-  if (cap) cap.textContent = `${el.dataset.title || ''} — ${el.dataset.meta || ''}`;
+  if (cap) cap.textContent = `${el.dataset.title || ''} - ${el.dataset.meta || ''}`;
   if (cmdfile) cmdfile.textContent = (el.dataset.meta || 'image').split(' · ')[0];
 }
 
@@ -363,9 +363,10 @@ function onKey(e: KeyboardEvent) {
     window.clearTimeout(gTimer);
     const map: Record<string, string> = {
       h: '/',
-      w: '/work',
+      t: '/timeline',
       g: '/gallery',
-      b: '/blog',
+      w: '/writing',
+      b: '/writing',
     };
     if (map[e.key]) {
       location.href = map[e.key];

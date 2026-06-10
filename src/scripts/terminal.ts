@@ -1,4 +1,4 @@
-// Interactive terminal — a real, hand-rolled shell for dark mode.
+// Interactive terminal - a real, hand-rolled shell for dark mode.
 // Reads a build-time virtual filesystem (/fs.json) generated from the site's
 // content. Pure DOM output (no emulator). Progressive enhancement: if this
 // never runs, the static terminal-styled content is still fully readable.
@@ -40,7 +40,7 @@ let draft = '';
 const HKEY = 'term-history';
 const OPSKEY = 'term-fs-ops';
 
-// Touch devices get a click-only terminal: no text input, no soft keyboard —
+// Touch devices get a click-only terminal: no text input, no soft keyboard -
 // just tap files / folders / links to explore. Keeps mobile simple & robust.
 const TOUCH = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
@@ -85,18 +85,18 @@ function buildRoot(siteChildren: Record<string, FsNode>): FsNode {
   const home = d({
     ...siteChildren,
     '.bashrc': f(
-      "# ~/.bashrc — jcsh config\nalias ll='ls -la'\nalias please='sudo'\nexport EDITOR=vim\nexport CAFFEINE=high\n# the secret to good code: ship it",
+      "# ~/.bashrc - jcsh config\nalias ll='ls -la'\nalias please='sudo'\nexport EDITOR=vim\nexport CAFFEINE=high\n# the secret to good code: ship it",
     ),
     '.profile': f('# loaded at login\necho "stay curious."'),
     '.config': d({
       jcsh: d({ 'theme.conf': f('palette = amber-crt\nscanlines = on\nboot_sequence = dramatic') }),
-      '.flag': f('joshOS{amber_crt_dreams} 🏁 — you really do read everything. respect.'),
+      '.flag': f('joshOS{amber_crt_dreams} 🏁 - you really do read everything. respect.'),
     }),
   });
 
   return d({
     bin: d(binset(['sh', 'bash', 'jcsh', 'ls', 'cat', 'cp', 'mv', 'rm'])),
-    boot: d({ 'vmjcsh-2.0': f('(binary blob — the dream loader)') }),
+    boot: d({ 'vmjcsh-2.0': f('(binary blob - the dream loader)') }),
     dev: d({
       null: f(''),
       zero: f(''),
@@ -109,7 +109,7 @@ function buildRoot(siteChildren: Record<string, FsNode>): FsNode {
       hostname: f('web'),
       hosts: f('127.0.0.1\tlocalhost\n127.0.1.1\tweb\n::1\tlocalhost ip6-localhost'),
       'os-release': f(OSREL),
-      motd: f('Welcome to joshOS 2.0 — where unauthorized brilliance is encouraged.'),
+      motd: f('Welcome to joshOS 2.0 - where unauthorized brilliance is encouraged.'),
       'jcsh.conf': f('greeting = "the web is yours"\nprompt = amber'),
     }),
     home: d({
@@ -124,7 +124,7 @@ function buildRoot(siteChildren: Record<string, FsNode>): FsNode {
     opt: d({
       treasure: d({
         'flag.txt': f(
-          '🏴‍☠️  X marks the spot.\nyou dug through the whole filesystem — say "amber-crt" to Josh and the coffee\'s on him. ☕',
+          '🏴‍☠️  X marks the spot.\nyou dug through the whole filesystem - say "amber-crt" to Josh and the coffee\'s on him. ☕',
         ),
       }),
     }),
@@ -204,7 +204,7 @@ function resolve(input: string): { segs: string[]; node: FsNode | null } {
   return { segs: base, node: nodeAt(base) };
 }
 
-// '/home/joshuacarey/work' → '~/work'; everything else absolute ('/etc').
+// '/home/joshuacarey/timeline' → '~/timeline'; everything else absolute ('/etc').
 function pretty(segs: string[]): string {
   if (segs.length >= 2 && segs[0] === HOME[0] && segs[1] === HOME[1]) {
     const rest = segs.slice(2);
@@ -392,7 +392,7 @@ function replayOps() {
 }
 
 /* ---------- shareable deep links (?p=writing/hello-world.md) ---------- */
-// Use the URL hash for deep links — Astro's ClientRouter manages pathname/search
+// Use the URL hash for deep links - Astro's ClientRouter manages pathname/search
 // but never touches the hash, so #p=… survives navigation/scroll.
 // Paths are stored relative to home so links stay short and portable.
 function relHome(segs: string[]): string | null {
@@ -424,8 +424,8 @@ function termSyncPath(pathname: string) {
     updatePS1();
     return;
   }
-  if (seg.startsWith('blog/')) {
-    const slug = seg.slice(5);
+  if (seg.startsWith('writing/')) {
+    const slug = seg.slice(8);
     if (resolve('writing/' + slug + '.md').node) {
       commands.cd.run({ args: ['writing'], flags: new Set() });
       updatePS1();
@@ -433,13 +433,13 @@ function termSyncPath(pathname: string) {
       return;
     }
   }
-  if (seg === 'blog') {
+  if (seg === 'writing') {
     commands.cd.run({ args: ['writing'], flags: new Set() });
     updatePS1();
     exec('ls', false);
     return;
   }
-  if (seg === 'work') {
+  if (seg === 'timeline') {
     updatePS1();
     exec('git log', false);
     return;
@@ -521,7 +521,7 @@ const commands: Record<string, Cmd> = {
       print(top);
       print('');
       print('the basics:', 'term-dim');
-      // A short, friendly set — enough for anyone to look around. Everything
+      // A short, friendly set - enough for anyone to look around. Everything
       // else is a real command waiting to be discovered (it IS a real shell).
       const core: [string, string][] = [
         ['ls', "see what's here"],
@@ -535,7 +535,7 @@ const commands: Record<string, Cmd> = {
       ];
       core.forEach(([n, h]) => print('  ' + n.padEnd(12) + h));
       print('');
-      print('…and it’s a real shell — loads of standard commands work too.', 'term-dim');
+      print('…and it’s a real shell - loads of standard commands work too.', 'term-dim');
       print('poke around: try `ls -la`, `tree`, `cd /`, `mkdir notes`. ↑/↓ history · tab to complete.', 'term-dim');
     },
   },
@@ -618,12 +618,7 @@ const commands: Record<string, Cmd> = {
       const linkRe = /(https?:\/\/[^\s]+|mailto:[^\s]+)/;
       (node.content || '').split('\n').forEach((l) => {
         if (l.startsWith('→ ')) {
-          const shown = l.slice(2).trim();
-          // Posts display as /writing/… for consistency, but the page route
-          // still lives at /blog/… — navigate there.
-          const href = shown.startsWith('/writing/')
-            ? shown.replace('/writing/', '/blog/')
-            : shown;
+          const href = l.slice(2).trim();
           const a = document.createElement('a');
           a.className = 'term-link';
           a.href = href;
@@ -672,7 +667,7 @@ const commands: Record<string, Cmd> = {
       const { node } = resolve(args[0]);
       const href = node?.href;
       if (!href) return void print(`open: ${args[0]}: nothing to open`, 'term-err');
-      print(`opening ${href.replace('/blog/', '/writing/')} …`, 'term-dim');
+      print(`opening ${href} …`, 'term-dim');
       window.location.href = href;
     },
   },
@@ -770,7 +765,7 @@ commands.man = {
   run({ args }) {
     const c = commands[args[0]];
     if (!c) return void print(`No manual entry for ${args[0] || ''}`, 'term-err');
-    print(`${args[0]} — ${c.help}`);
+    print(`${args[0]} - ${c.help}`);
   },
 };
 // handy aliases
@@ -830,7 +825,7 @@ commands.rm = {
     for (const a of args) {
       if (abspath(a) === '/') {
         print("rm: it is dangerous to operate recursively on '/'", 'term-err');
-        print('rm: (nice try 😄) — refusing', 'term-dim');
+        print('rm: (nice try 😄) - refusing', 'term-dim');
         continue;
       }
       if (!writable(a)) {
@@ -1216,12 +1211,21 @@ interface Commit {
   stack: string[];
   highlights: string[];
   href: string;
+  links?: { label: string; href: string }[];
 }
 const refClass = (r: string) =>
-  r.startsWith('tag:') ? 'ref-tag' : r.startsWith('HEAD') ? 'ref-head' : 'ref-branch';
+  r.startsWith('tag:')
+    ? 'ref-tag'
+    : r.startsWith('HEAD')
+      ? 'ref-head'
+      : r.startsWith('proj/')
+        ? 'ref-proj'
+        : r.startsWith('life/')
+          ? 'ref-life'
+          : 'ref-branch';
 
 commands.git = {
-  help: 'project history — git log --graph',
+  help: 'project history - git log --graph',
   run({ args }) {
     const commits: Commit[] = siteData?.commits || [];
     if (!commits.length) return void print('git: no commits found', 'term-err');
@@ -1237,16 +1241,21 @@ commands.git = {
       print('');
       c.highlights.forEach((h) => print('    + ' + h, 'cb-add'));
       if (c.stack.length) print('    stack: ' + c.stack.join(', '), 'term-dim');
-      if (c.href && c.href !== '#') {
+      const links = c.links?.length
+        ? c.links
+        : c.href && c.href !== '#'
+          ? [{ label: 'site', href: c.href }]
+          : [];
+      for (const l of links) {
         const d = line('    ');
         const a = document.createElement('a');
         a.className = 'term-link';
-        a.href = c.href;
-        if (/^https?:/.test(c.href)) {
+        a.href = l.href;
+        if (/^https?:/.test(l.href)) {
           a.target = '_blank';
           a.rel = 'noopener';
         }
-        a.textContent = '→ ' + c.href;
+        a.textContent = `→ ${l.label}: ${l.href}`;
         d.appendChild(a);
         print(d);
       }
@@ -1307,7 +1316,7 @@ function exec(raw: string, addHistory: boolean) {
         print(`${name}: error`, 'term-err');
       }
     } else {
-      print(`command not found: ${name} — type 'help'`, 'term-err');
+      print(`command not found: ${name} - type 'help'`, 'term-err');
     }
   }
   histIdx = -1;
@@ -1655,7 +1664,7 @@ function openPhoto(items: Photo[], start: number) {
     const go = () => {
       img.src = src;
       cap.textContent = it.img
-        ? `${it.img.title} — ${it.img.w}×${it.img.h} · ${it.img.size} · ${it.img.date}`
+        ? `${it.img.title} - ${it.img.w}×${it.img.h} · ${it.img.size} · ${it.img.date}`
         : it.name;
     };
     if ((document as any).startViewTransition && !reduceMotionT()) {
@@ -1766,7 +1775,7 @@ function updatePS1() {
   const p = pretty(cwd);
   document.querySelectorAll('.term-cwd').forEach((el) => (el.textContent = ':' + p));
   const title = document.querySelector('.term-title');
-  if (title) title.textContent = `joshuacarey@web: ${p} — zsh`;
+  if (title) title.textContent = `joshuacarey@web: ${p} - zsh`;
   const sp = document.querySelector('.status-path');
   if (sp) sp.textContent = p;
 }
@@ -1776,7 +1785,7 @@ function scrollToInput() {
   // the bottom on load.
   if (document.documentElement.getAttribute('data-theme') !== 'dark') return;
   // On touch the scrollback scrolls inside #term-out (the window is fixed to the
-  // visual viewport); on desktop the whole page scrolls. Do both — harmless.
+  // visual viewport); on desktop the whole page scrolls. Do both - harmless.
   if (outEl) outEl.scrollTop = outEl.scrollHeight;
   const el = document.scrollingElement || document.documentElement;
   el.scrollTop = el.scrollHeight;
@@ -1853,7 +1862,7 @@ async function init() {
     const file = parts.pop()!;
     if (parts.length) commands.cd.run({ args: [parts.join('/')], flags: new Set() });
     updatePS1();
-    print('joshuacarey@web — shared link · type `help` to explore', 'term-dim');
+    print('joshuacarey@web - shared link · type `help` to explore', 'term-dim');
     print('');
     exec('cat ' + file, false);
   } else {
@@ -1885,7 +1894,7 @@ async function init() {
   });
 
   // Drive the caret's "focused" look off the INPUT's real focus (not the CSS
-  // :focus-within, which also fires when a scrollback button/link has focus —
+  // :focus-within, which also fires when a scrollback button/link has focus -
   // making the caret look active while keystrokes go nowhere).
   const terminalEl = document.getElementById('terminal');
   inputEl.addEventListener('focus', () => terminalEl?.classList.add('is-focused'));
@@ -1903,7 +1912,7 @@ async function init() {
       const path = entry.dataset.path || entry.dataset.name!;
       const isDir = entry.dataset.type === 'dir';
       const isGallery = isDir && /(^|\/)gallery$/.test(path);
-      // On touch the gallery TUI needs a keyboard to drive — just browse the
+      // On touch the gallery TUI needs a keyboard to drive - just browse the
       // folder instead; on desktop launch the full viewer.
       if (isGallery && !TOUCH) return void exec('gallery', false); // app manages focus
       if (isDir) {
@@ -1916,8 +1925,8 @@ async function init() {
   });
 
   // Desktop only: the WHOLE terminal window is clickable to focus the prompt
-  // (like a real terminal). On touch there's no prompt to focus — navigation is
-  // by tapping files / folders / links — so we skip all keyboard wiring.
+  // (like a real terminal). On touch there's no prompt to focus - navigation is
+  // by tapping files / folders / links - so we skip all keyboard wiring.
   if (!TOUCH) {
     const win = document.querySelector('.term-window');
     const focusFromTap = (e: Event) => {
@@ -1948,8 +1957,8 @@ async function init() {
 function welcome() {
   print(
     TOUCH
-      ? 'joshuacarey@web — tap any file or folder below to explore.'
-      : 'joshuacarey@web — type `help`, or click any file / folder below.',
+      ? 'joshuacarey@web - tap any file or folder below to explore.'
+      : 'joshuacarey@web - type `help`, or click any file / folder below.',
     'term-dim',
   );
   const hint = line('', 'term-dim');
@@ -1962,7 +1971,7 @@ function welcome() {
   hint.appendChild(sw);
   print(hint);
   if (!TOUCH)
-    print('it’s a real shell — try `ls /`, `cat /etc/passwd`, `mkdir notes`. (`reset` to undo.)', 'term-dim');
+    print('it’s a real shell - try `ls /`, `cat /etc/passwd`, `mkdir notes`. (`reset` to undo.)', 'term-dim');
   print('');
   exec('ls', false);
 }
@@ -1971,7 +1980,7 @@ function pathFromLocation(): string[] {
   const p = location.pathname.replace(/^\/|\/$/g, '');
   if (!p) return [];
   const first = p.split('/')[0];
-  return ['work', 'blog', 'gallery'].includes(first) ? [first] : [];
+  return ['timeline', 'writing', 'gallery'].includes(first) ? [first] : [];
 }
 
 init();

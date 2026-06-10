@@ -27,7 +27,7 @@ const personSchema = {
   image: new URL(SITE.avatarFallback, Astro.site).href,
   jobTitle: 'AI Engineer & Digital Transformation Lead',
   description:
-    'AI engineer and strategist building production LLM applications and autonomous agents — leading AI & digital transformation in the superyacht industry.',
+    'AI engineer and strategist building production LLM applications and autonomous agents, leading AI & digital transformation in the superyacht industry.',
   worksFor: {
     '@type': 'Organization',
     name: 'Cecil Wright & Partners',
@@ -61,7 +61,7 @@ const path = Astro.url.pathname;
 const isCurrent = (href: string) =>
   href === '/' ? path === '/' : path.startsWith(href);
 
-// terminal title bar path, e.g. ~/work
+// terminal title bar path, e.g. ~/timeline
 const termPath =
   path === '/' ? '~' : `~${path.replace(/\/$/, '')}`;
 
@@ -172,7 +172,7 @@ const year = new Date().getFullYear();
             title="Zoom (toggle text size)"></button>
         </span>
         <span class="term-title" aria-hidden="true"
-          >{SITE.handle}@web: {termPath} — zsh</span
+          >{SITE.handle}@web: {termPath} - zsh</span
         >
         <button
           type="button"
@@ -293,7 +293,7 @@ const year = new Date().getFullYear();
       <h2>Keyboard shortcuts</h2>
       <div class="help-grid">
         <kbd>t</kbd><span>toggle light / terminal</span>
-        <kbd>g</kbd> <span>then <kbd>h</kbd> <kbd>w</kbd> <kbd>g</kbd> <kbd>b</kbd> — go home / work / gallery / writing</span>
+        <kbd>g</kbd> <span>then <kbd>h</kbd> <kbd>t</kbd> <kbd>g</kbd> <kbd>w</kbd> · go home / timeline / gallery / writing</span>
         <kbd>1</kbd>–<kbd>4</kbd><span>jump to nav items</span>
         <kbd>j</kbd> / <kbd>k</kbd><span>move down / up (rows &amp; commits)</span>
         <kbd>↵</kbd><span>open photo · expand commit (git show)</span>

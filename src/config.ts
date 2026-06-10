@@ -8,7 +8,7 @@ export const MEDIA_BASE = 'https://pub-9ec0054b913c4c4f9b29a27db73c9539.r2.dev';
 export const SITE = {
   name: 'Joshua Carey',
   title: 'Joshua Carey',
-  description: 'Personal site of Joshua Carey — work, writing, and notes.',
+  description: 'Personal site of Joshua Carey: work, writing, and notes.',
   email: 'josh.fwh.carey@gmail.com',
   handle: 'joshuacarey', // terminal user (joshuacarey@web)
   // The avatar lives in /public. Drop your photo at public/profile.jpg.
@@ -19,8 +19,8 @@ export const SITE = {
 
 export const NAV = [
   { href: '/', label: 'Home', cmd: 'cd ~' },
-  { href: '/work', label: 'Work', cmd: 'git log' },
-  { href: '/blog', label: 'Writing', cmd: 'ls ~/writing' },
+  { href: '/timeline', label: 'Timeline', cmd: 'git log' },
+  { href: '/writing', label: 'Writing', cmd: 'ls ~/writing' },
   { href: '/gallery', label: 'Gallery', cmd: 'open ~/gallery' },
 ];
 

@@ -3,9 +3,9 @@
 // always reflects what's actually on the site. Served as static /fs.json.
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
-import { work, commitHash } from '../data/work';
+import { work, commitHash, commitType, branchRef, slugify } from '../data/work';
 import { gallery } from '../data/gallery';
-import { SITE, SOCIALS } from '../config';
+import { MEDIA_BASE, SITE, SOCIALS } from '../config';
 
 export const prerender = true;
 
@@ -44,10 +44,13 @@ try: ls · git log · gallery · help`;
 
   const workChildren: Record<string, FsNode> = {};
   for (const item of work) {
-    const slug = item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    workChildren[`${slug}.md`] = {
+    const links = [
+      ...(item.href ? [{ label: 'site', href: item.href }] : []),
+      ...(item.links ?? []).filter((l) => l.href !== item.href),
+    ];
+    workChildren[`${slugify(item.title)}.md`] = {
       type: 'file',
-      href: item.href,
+      href: item.href ?? item.links?.[0]?.href,
       meta: item.date,
       content:
         `# ${item.title}  (${commitHash(item.title + item.date)})\n` +
@@ -55,7 +58,7 @@ try: ls · git log · gallery · help`;
         `${item.description}\n` +
         (item.highlights?.length ? '\n' + item.highlights.map((h) => `  + ${h}`).join('\n') : '') +
         (item.stack?.length ? `\n\nstack: ${item.stack.join(', ')}` : '') +
-        (item.href ? `\n\n→ ${item.href}` : ''),
+        (links.length ? '\n\n' + links.map((l) => `→ ${l.label}: ${l.href}`).join('\n') : ''),
     };
   }
 
@@ -63,10 +66,15 @@ try: ls · git log · gallery · help`;
   for (const p of posts) {
     // Include the real post body so `cat <post>.md` reads the whole thing in the
     // terminal (raw markdown — it IS a .md file), not just the description.
-    const body = (p.body ?? '').trim() || (p.data.description ?? '');
+    // `media:` image shorthands resolve to public R2 URLs so the terminal's
+    // linkifier makes them clickable.
+    const body = ((p.body ?? '').trim() || (p.data.description ?? '')).replaceAll(
+      '](media:',
+      `](${MEDIA_BASE}/`,
+    );
     blogChildren[`${p.id}.md`] = {
       type: 'file',
-      href: `/blog/${p.id}/`,
+      href: `/writing/${p.id}/`,
       meta: p.data.date.toISOString().slice(0, 10),
       content: `# ${p.data.title}\n${p.data.date.toISOString().slice(0, 10)}\n\n${body}\n\n→ /writing/${p.id}/`,
     };
@@ -96,8 +104,8 @@ try: ls · git log · gallery · help`;
     children: {
       'about.txt': { type: 'file', content: about },
       'contact.txt': { type: 'file', content: contact },
-      work: { type: 'dir', href: '/work', children: workChildren },
-      writing: { type: 'dir', href: '/blog', children: blogChildren },
+      timeline: { type: 'dir', href: '/timeline', children: workChildren },
+      writing: { type: 'dir', href: '/writing', children: blogChildren },
       gallery: { type: 'dir', href: '/gallery', children: galleryChildren },
       '.secret': {
         type: 'file',
@@ -111,7 +119,7 @@ try: ls · git log · gallery · help`;
         children: {
           id_rsa: {
             type: 'file',
-            content: 'nice try 😄 — no private keys here.',
+            content: 'nice try 😄 - no private keys here.',
           },
         },
       },
@@ -119,23 +127,30 @@ try: ls · git log · gallery · help`;
   };
 
   // commit log for the `git log --graph` command
-  const commits = work.map((item) => ({
-    hash: commitHash(item.title + item.date),
-    title: item.title,
-    date: item.date,
-    range: item.range ?? item.date,
-    role: item.role ?? '',
-    type: item.status === 'archived' ? 'chore' : 'feat',
-    refs: [
-      ...(item.status === 'active' ? ['HEAD -> main'] : []),
-      ...(item.branch && item.branch !== 'main' ? [item.branch] : []),
-      ...(item.tag ? [`tag: ${item.tag}`] : []),
-    ],
-    desc: item.description,
-    stack: item.stack ?? [],
-    highlights: item.highlights ?? [],
-    href: item.href ?? '',
-  }));
+  const commits = work.map((item) => {
+    const branch = branchRef(item);
+    return {
+      hash: commitHash(item.title + item.date),
+      title: item.title,
+      date: item.date,
+      range: item.range ?? item.date,
+      role: item.role ?? '',
+      type: commitType(item),
+      refs: [
+        ...(item.status === 'active' && (item.kind ?? 'work') === 'work' ? ['HEAD -> main'] : []),
+        ...(branch ? [branch] : []),
+        ...(item.tag ? [`tag: ${item.tag}`] : []),
+      ],
+      desc: item.description,
+      stack: item.stack ?? [],
+      highlights: item.highlights ?? [],
+      href: item.href ?? '',
+      links: [
+        ...(item.href ? [{ label: 'site', href: item.href }] : []),
+        ...(item.links ?? []).filter((l) => l.href !== item.href),
+      ],
+    };
+  });
 
   return new Response(JSON.stringify({ ...root, commits }), {
     headers: { 'content-type': 'application/json' },
