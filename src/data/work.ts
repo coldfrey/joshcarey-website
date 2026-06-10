@@ -74,8 +74,8 @@ export const work: WorkItem[] = [
     title: 'Pirate Life',
     kind: 'life',
     description: 'Buying, restoring and sailing a 1963 wooden sailing boat.',
-    date: '2024',
-    range: '2024 - now',
+    date: '2023',
+    range: '2023 - 2024',
     status: 'shipped',
   },
   {
