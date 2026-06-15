@@ -599,35 +599,36 @@ function syncTimelinePac(scrolling = false) {
     );
   }
 
-  // anything on the spine above pac-man's mouth has been eaten
+  // anything on the spine above pac-man's mouth has been eaten. The dot and
+  // its connector bar to the card sit at the same height, so the instant that
+  // bar is eaten the whole entry — dot, connector and card — poofs out of
+  // existence together; scrolling back up rebuilds it from scraps.
   const boundary = rect.top + 8 + eatenRaw;
+  const animate = !reduceMotion() && !scene.classList.contains('tl-noanim');
   scene.querySelectorAll<HTMLElement>('.tl-entry').forEach((entry) => {
     const dot = entry.querySelector('.tl-dot');
     if (!dot) return;
     const r = dot.getBoundingClientRect();
-    entry.classList.toggle('is-eaten', r.top + r.height / 2 < boundary);
+    const gone = r.top + r.height / 2 < boundary;
+    entry.classList.toggle('is-eaten', gone);
+
+    entry.querySelectorAll<HTMLElement>('.tl-card').forEach((card) => {
+      if (gone === card.classList.contains('is-poofed')) return;
+      if (gone) {
+        card.classList.remove('is-rebuilding');
+        card.classList.add('is-poofed');
+      } else {
+        card.classList.remove('is-poofed');
+        if (animate) {
+          card.classList.add('is-rebuilding');
+          window.setTimeout(() => card.classList.remove('is-rebuilding'), 600);
+        }
+      }
+    });
   });
   scene.querySelectorAll<HTMLElement>('.tl-yearmark').forEach((mark) => {
     const r = mark.getBoundingClientRect();
     mark.classList.toggle('is-eaten', r.top + r.height / 2 < boundary);
-  });
-
-  // the moment pac-man eats a card's title link, the whole experience poofs
-  // out of existence; scrolling back up rebuilds it from scraps
-  scene.querySelectorAll<HTMLElement>('.tl-card').forEach((card) => {
-    const probe = card.querySelector('.tl-title') ?? card;
-    const gone = probe.getBoundingClientRect().bottom < boundary;
-    if (gone === card.classList.contains('is-poofed')) return;
-    if (gone) {
-      card.classList.remove('is-rebuilding');
-      card.classList.add('is-poofed');
-    } else {
-      card.classList.remove('is-poofed');
-      if (!reduceMotion() && !scene.classList.contains('tl-noanim')) {
-        card.classList.add('is-rebuilding');
-        window.setTimeout(() => card.classList.remove('is-rebuilding'), 600);
-      }
-    }
   });
 }
 
