@@ -114,16 +114,9 @@ const year = new Date().getFullYear();
         var phone =
           window.matchMedia('(max-width: 640px)').matches ||
           window.matchMedia('(pointer: coarse)').matches;
-        // Phones ALWAYS open in light — the terminal/dark is a desktop
-        // experience. Dark can still be toggled, but only for the current
-        // browsing session (sessionStorage), so every fresh visit is light.
-        if (phone) {
-          try {
-            return sessionStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
-          } catch (e) {
-            return 'light';
-          }
-        }
+        // Phones are ALWAYS light — the terminal/dark "boring mode" is a
+        // desktop-only experience and can't be reached on mobile at all.
+        if (phone) return 'light';
         // Desktop: explicit saved pref wins, else default to light.
         var t = localStorage.getItem('theme');
         if (t === 'light' || t === 'dark') return t;

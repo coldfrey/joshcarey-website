@@ -25,6 +25,11 @@
   --border-strong: #dcd2bd;
   --accent: #b5451f;
   --accent-hover: #8f3415;
+  /* timeline categories: professional (work/education) vs personal
+     (projects/life) — two distinct hues so the lanes read at a glance,
+     especially on mobile where they collapse into one column */
+  --cat-work: #b5451f;
+  --cat-side: #2f6f5e;
   --selection: #f3e4ce;
   --glow: none;
   --shadow-tint: 28 25 20;
@@ -1095,6 +1100,143 @@ a:hover {
   display: none;
 }
 
+/* =========================================================================
+   Mobile (<880px): segmented Work / Projects view. The desktop two physical
+   lanes collapse into one focused column at a time, switched by a sticky pill.
+   ========================================================================= */
+.tl-mobile {
+  display: none; /* shown only <880 (rule below) */
+}
+
+@media (max-width: 879px) {
+  /* "left / right" lede + the whole desktop two-lane scene belong to wide */
+  .tl-lede {
+    display: none;
+  }
+  .tl-scene {
+    display: none;
+  }
+  .tl-mobile {
+    display: block;
+  }
+}
+@media (min-width: 880px) {
+  .tl-mobile {
+    display: none !important;
+  }
+}
+
+/* sticky segmented toggle, riding just under the (sticky) top nav */
+.tl-tabs {
+  position: sticky;
+  top: var(--topbar-h, 56px);
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0.4rem 0 1.6rem;
+  padding: 4px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  isolation: isolate;
+}
+.tl-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.5rem;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease;
+}
+.tl-tab[aria-selected="true"][data-tab="work"] {
+  color: var(--cat-work);
+}
+.tl-tab[aria-selected="true"][data-tab="projects"] {
+  color: var(--cat-side);
+}
+.tl-tab-mark {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--cat-work);
+}
+.tl-tab-mark[data-cat="side"] {
+  border-radius: 2px;
+  background: var(--cat-side);
+  transform: rotate(45deg); /* diamond, mirrors the project/life dots */
+}
+/* the gliding pill behind the active tab */
+.tl-tab-glider {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  box-shadow: var(--elev-1);
+  transition: transform 0.28s cubic-bezier(0.22, 0.7, 0.2, 1),
+    background-color 0.28s ease;
+}
+.tl-tabs[data-active="projects"] .tl-tab-glider {
+  transform: translateX(100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl-tab-glider {
+    transition: none;
+  }
+}
+
+/* each lane is a clean single-column timeline with its own tinted spine */
+.tl-mlist {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tl-mlist[hidden] {
+  display: none;
+}
+.tl-mlist::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: color-mix(in srgb, var(--cat-work) 32%, var(--border-strong));
+}
+.tl-mlist[data-tab="projects"]::before {
+  background: color-mix(in srgb, var(--cat-side) 32%, var(--border-strong));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tl-mlist:not([hidden]).is-entering {
+    animation: tl-panel-in 0.34s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @keyframes tl-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
 .tl-entry {
   position: relative;
   padding: 0 0 clamp(2.75rem, 7vh, 5rem) 2.75rem;
@@ -1156,11 +1298,20 @@ a:hover {
 .tl-dot[data-status="archived"] {
   border-color: var(--faint);
 }
-/* projects & life get a diamond marker */
+/* projects & life get a teal diamond marker (vs the terracotta work circle) */
 .tl-dot[data-kind="project"],
 .tl-dot[data-kind="life"] {
   border-radius: 4px;
   transform: rotate(45deg);
+  border-color: var(--cat-side);
+}
+.tl-dot[data-kind="project"][data-status="active"],
+.tl-dot[data-kind="life"][data-status="active"] {
+  background: var(--cat-side);
+}
+.tl-dot[data-kind="project"][data-status="active"]::after,
+.tl-dot[data-kind="life"][data-status="active"]::after {
+  border-color: var(--cat-side);
 }
 
 .tl-card {
@@ -1197,10 +1348,18 @@ a:hover {
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   font-weight: 700;
-  color: var(--muted);
-  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  padding: 0.05rem 0.45rem;
+  padding: 0.1rem 0.5rem;
+  /* coloured per category below; default to the work hue */
+  color: var(--cat-work);
+  border: 1px solid color-mix(in srgb, var(--cat-work) 35%, transparent);
+  background: color-mix(in srgb, var(--cat-work) 9%, transparent);
+}
+.tl-kind[data-kind="project"],
+.tl-kind[data-kind="life"] {
+  color: var(--cat-side);
+  border-color: color-mix(in srgb, var(--cat-side) 38%, transparent);
+  background: color-mix(in srgb, var(--cat-side) 11%, transparent);
 }
 .tl-title {
   font-size: 1.18rem;
@@ -1249,6 +1408,14 @@ a:hover {
   text-decoration: underline;
 }
 
+/* ---- narrow screens: links pick up the active lane's colour ---- */
+@media (max-width: 879px) {
+  .tl-card[data-kind="project"] .tl-links a,
+  .tl-card[data-kind="life"] .tl-links a {
+    color: var(--cat-side);
+  }
+}
+
 /* ---- wide screens: two lanes around a center spine ---- */
 @media (min-width: 880px) {
   .timeline {
@@ -1274,6 +1441,14 @@ a:hover {
   }
   .tl-lanehead span:first-child {
     text-align: right;
+  }
+  /* the two physical lanes + headers carry the meaning here — no legend,
+     and the left (work) lane needs no per-card chip */
+  .tl-legend {
+    display: none;
+  }
+  .tl-card[data-side="left"] .tl-kind {
+    display: none;
   }
 
   .tl-entry {
@@ -2787,13 +2962,16 @@ html.preboot::before {
     width: 100%;
     gap: 0.1rem;
   }
-  /* links sit left, toggle pinned to the far right of the row */
-  .nav-links .theme-toggle {
-    margin-left: auto;
-  }
   [data-theme="light"] .nav-links a {
     padding: 0.45rem 0.6rem;
     font-size: 0.84rem;
+  }
+}
+
+/* dark "boring mode" is desktop-only — no theme toggle on phones/touch */
+@media (max-width: 640px), (pointer: coarse) {
+  .theme-toggle {
+    display: none !important;
   }
 }
 

@@ -11,6 +11,12 @@ declare global {
 const reduceMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Phones never get the dark terminal — keep this in sync with __resolveTheme
+// in Base.astro so the page can't be toggled into a state it won't restore.
+const isPhone = () =>
+  window.matchMedia('(max-width: 640px)').matches ||
+  window.matchMedia('(pointer: coarse)').matches;
+
 const isTyping = (el: EventTarget | null) => {
   const n = el as HTMLElement | null;
   return (
@@ -196,6 +202,8 @@ function pageForTerminalFile(): string | null {
 }
 
 function toggleTheme() {
+  // dark/terminal mode is desktop-only; ignore any toggle attempt on phones
+  if (isPhone()) return;
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
   if (next === 'dark') {
     // entering the terminal → open the file matching the current page path
@@ -359,6 +367,21 @@ function onKey(e: KeyboardEvent) {
 
   if (isTyping(e.target)) return;
 
+  // arrow keys move between the Work / Projects timeline tabs
+  if (
+    (e.key === 'ArrowLeft' || e.key === 'ArrowRight') &&
+    (document.activeElement as HTMLElement | null)?.classList.contains('tl-tab')
+  ) {
+    const order = ['work', 'projects'];
+    const cur = (document.activeElement as HTMLElement).dataset.tab || 'work';
+    const step = e.key === 'ArrowRight' ? 1 : order.length - 1;
+    const next = order[(order.indexOf(cur) + step) % order.length];
+    switchTimelineTab(next);
+    document.querySelector<HTMLElement>(`.tl-tab[data-tab="${next}"]`)?.focus();
+    e.preventDefault();
+    return;
+  }
+
   // `g` then key → goto
   if (gPending) {
     gPending = false;
@@ -452,6 +475,8 @@ function onClick(e: MouseEvent) {
       return;
     }
   }
+  const tab = t.closest<HTMLElement>('.tl-tab');
+  if (tab) return switchTimelineTab(tab.dataset.tab || 'work');
   if (t.closest('#theme-toggle')) return toggleTheme();
   if (t.closest('[data-theme-switch]')) return toggleTheme();
   if (t.closest('[data-lb-close]')) return closeLightbox();
@@ -612,6 +637,48 @@ function syncNavScrolled() {
   if (bar) bar.classList.toggle('scrolled', window.scrollY > 4);
 }
 
+/* ---------------- timeline mobile tabs (Work / Projects) ---------------- */
+// Keep the sticky segmented toggle parked just under the sticky top nav.
+function syncTopbarHeight() {
+  const bar = document.querySelector<HTMLElement>('.topbar');
+  if (bar) {
+    document.documentElement.style.setProperty('--topbar-h', bar.offsetHeight + 'px');
+  }
+}
+
+function switchTimelineTab(tab: string) {
+  const tabs = document.querySelector<HTMLElement>('.tl-tabs');
+  if (!tabs || tabs.dataset.active === tab) return;
+  tabs.dataset.active = tab;
+
+  tabs.querySelectorAll<HTMLElement>('.tl-tab').forEach((btn) => {
+    const on = btn.dataset.tab === tab;
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    btn.tabIndex = on ? 0 : -1;
+  });
+
+  document.querySelectorAll<HTMLOListElement>('.tl-mlist').forEach((list) => {
+    const on = list.dataset.tab === tab;
+    list.hidden = !on;
+    if (on && !reduceMotion()) {
+      list.classList.remove('is-entering');
+      void list.offsetWidth; // reflow so the entrance animation restarts
+      list.classList.add('is-entering');
+    }
+  });
+
+  // if the toggle has scrolled up under the nav, snap it back into view so the
+  // freshly-shown (possibly shorter) list doesn't leave the user mid-page
+  const top = tabs.getBoundingClientRect().top;
+  const navH = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--topbar-h'),
+  ) || 56;
+  if (top < navH) {
+    const y = window.scrollY + top - navH - 8;
+    window.scrollTo({ top: y, behavior: reduceMotion() ? 'auto' : 'smooth' });
+  }
+}
+
 /* ---------------- blur-up images (LQIP preview → fade in full) ----------------
    Progressive enhancement: images that are already cached/complete show
    instantly; the rest start transparent over their blurred LQIP background and
@@ -635,6 +702,7 @@ function initBlurUp() {
 function init() {
   initTermFont();
   syncNavScrolled();
+  syncTopbarHeight();
   syncTimelinePac();
   initBlurUp();
   // Boot sequence on a fresh dark load (the head added `preboot`).
@@ -649,7 +717,10 @@ function init() {
   window.addEventListener('scroll', () => syncTimelinePac(true), {
     passive: true,
   });
-  window.addEventListener('resize', () => syncTimelinePac());
+  window.addEventListener('resize', () => {
+    syncTopbarHeight();
+    syncTimelinePac();
+  });
   window.addEventListener('wheel', onPacWheel, { passive: false });
   window.addEventListener('touchstart', onPacTouchStart, { passive: true });
   window.addEventListener('touchmove', onPacTouchMove, { passive: false });

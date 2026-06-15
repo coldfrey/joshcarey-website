@@ -1,5 +1,6 @@
 ---
 import Prompt from './Prompt.astro';
+import TimelineCard from './TimelineCard.astro';
 import { work, commitHash, commitType, branchRef, side, type WorkItem, type WorkLink } from '../data/work';
 
 // git decorations like (HEAD -> main, tag: v1.0)
@@ -32,6 +33,10 @@ for (const item of work) {
 }
 const rowSide = (row: WorkItem[]) => (row.length === 2 ? 'both' : side(row[0]));
 
+// Mobile segmented view: two self-contained lists, one per lane.
+const workItems = work.filter((it) => side(it) === 'left');
+const projItems = work.filter((it) => side(it) === 'right');
+
 // title link + extra links, deduped, for the light links row and dark git show
 function allLinks(item: WorkItem): WorkLink[] {
   const links: WorkLink[] = [];
@@ -43,7 +48,7 @@ function allLinks(item: WorkItem): WorkLink[] {
 }
 ---
 
-{/* ============ LIGHT: two-lane editorial timeline ============ */}
+{/* ============ LIGHT (wide): two-lane editorial timeline ============ */}
 <div class="tl-lanehead doc-only" aria-hidden="true">
   <span>Work</span>
   <span></span>
@@ -70,52 +75,81 @@ function allLinks(item: WorkItem): WorkLink[] {
           <span class="tl-dot" data-status={row[0].status} data-kind={row[0].kind ?? 'work'} />
         </div>
         {row.map((item) => (
-          <div class="tl-card" data-side={side(item)}>
-            <div class="tl-yearbig" aria-hidden="true">{item.date}</div>
-            <div class="tl-year">
-              <time>{item.range ?? item.date}</time>
-              {item.status === 'active' && <span class="tl-live">live</span>}
-              {side(item) === 'right' && (
-                <span class="tl-kind">{item.kind === 'project' ? 'project' : 'life'}</span>
-              )}
-            </div>
-            <h3 class="tl-title">
-              {item.href ? (
-                <a href={item.href} target="_blank" rel="noopener">
-                  {item.title}
-                </a>
-              ) : (
-                item.title
-              )}
-            </h3>
-            {item.role && <p class="tl-role">{item.role}</p>}
-            <p class="tl-desc">{item.description}</p>
-            {item.highlights && (
-              <ul class="tl-highlights">
-                {item.highlights.map((h) => (
-                  <li>{h}</li>
-                ))}
-              </ul>
-            )}
-            {item.links && item.links.length > 0 && (
-              <ul class="tl-links">
-                {item.links.map((l) => (
-                  <li>
-                    {isExternal(l.href) ? (
-                      <a href={l.href} target="_blank" rel="noopener">↗ {l.label}</a>
-                    ) : (
-                      <a href={l.href}>→ {l.label}</a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <TimelineCard item={item} />
         ))}
       </li>
     ))
   }
 </ol>
+</div>
+
+{/* ============ LIGHT (narrow): segmented Work / Projects view ============ */}
+<div class="tl-mobile doc-only">
+  <div class="tl-tabs" role="tablist" aria-label="Timeline category" data-active="work">
+    <button
+      type="button"
+      class="tl-tab"
+      role="tab"
+      data-tab="work"
+      id="tl-tab-work"
+      aria-controls="tl-panel-work"
+      aria-selected="true"
+    >
+      <span class="tl-tab-mark" data-cat="work" aria-hidden="true"></span>Work
+    </button>
+    <button
+      type="button"
+      class="tl-tab"
+      role="tab"
+      data-tab="projects"
+      id="tl-tab-projects"
+      aria-controls="tl-panel-projects"
+      aria-selected="false"
+      tabindex="-1"
+    >
+      <span class="tl-tab-mark" data-cat="side" aria-hidden="true"></span>Projects
+    </button>
+    <span class="tl-tab-glider" aria-hidden="true"></span>
+  </div>
+
+  <ol
+    class="tl-mlist"
+    data-tab="work"
+    id="tl-panel-work"
+    role="tabpanel"
+    aria-labelledby="tl-tab-work"
+  >
+    {
+      workItems.map((item, i) => (
+        <li class="tl-entry" data-side="left" data-kind={item.kind ?? 'work'} style={`--i:${i}`}>
+          <div class="tl-rail">
+            <span class="tl-dot" data-status={item.status} data-kind={item.kind ?? 'work'} />
+          </div>
+          <TimelineCard item={item} />
+        </li>
+      ))
+    }
+  </ol>
+
+  <ol
+    class="tl-mlist"
+    data-tab="projects"
+    id="tl-panel-projects"
+    role="tabpanel"
+    aria-labelledby="tl-tab-projects"
+    hidden
+  >
+    {
+      projItems.map((item, i) => (
+        <li class="tl-entry" data-side="right" data-kind={item.kind ?? 'work'} style={`--i:${i}`}>
+          <div class="tl-rail">
+            <span class="tl-dot" data-status={item.status} data-kind={item.kind ?? 'work'} />
+          </div>
+          <TimelineCard item={item} />
+        </li>
+      ))
+    }
+  </ol>
 </div>
 
 {/* ============ DARK: git log --oneline ============ */}

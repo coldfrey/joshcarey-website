@@ -1,0 +1,47 @@
+---
+// One timeline card — shared by the desktop two-lane layout and the mobile
+// segmented (Work / Projects) view so the markup never drifts between them.
+import { side, type WorkItem } from '../data/work';
+
+const { item } = Astro.props as { item: WorkItem };
+const isExternal = (href: string) => /^https?:/.test(href);
+const kind = item.kind ?? 'work';
+---
+
+<div class="tl-card" data-side={side(item)} data-kind={kind}>
+  <div class="tl-yearbig" aria-hidden="true">{item.date}</div>
+  <div class="tl-year">
+    <span class="tl-kind" data-kind={kind}>{kind}</span>
+    <time>{item.range ?? item.date}</time>
+    {item.status === 'active' && <span class="tl-live">live</span>}
+  </div>
+  <h3 class="tl-title">
+    {item.href ? (
+      <a href={item.href} target="_blank" rel="noopener">{item.title}</a>
+    ) : (
+      item.title
+    )}
+  </h3>
+  {item.role && <p class="tl-role">{item.role}</p>}
+  <p class="tl-desc">{item.description}</p>
+  {item.highlights && (
+    <ul class="tl-highlights">
+      {item.highlights.map((h) => (
+        <li>{h}</li>
+      ))}
+    </ul>
+  )}
+  {item.links && item.links.length > 0 && (
+    <ul class="tl-links">
+      {item.links.map((l) => (
+        <li>
+          {isExternal(l.href) ? (
+            <a href={l.href} target="_blank" rel="noopener">↗ {l.label}</a>
+          ) : (
+            <a href={l.href}>→ {l.label}</a>
+          )}
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
