@@ -503,6 +503,28 @@ let pacExtra = 0; // munch progress past his anchor, driven by overscroll (px)
 let pacRemaining = 0; // spine left to eat, updated by syncTimelinePac
 let pacPrevY = 0;
 let pacTouchY = 0;
+let lastPacOl: HTMLElement | null = null;
+
+// Resolve whichever timeline is on screen: the desktop two-lane scene, or the
+// mobile segmented view's currently-visible Work / Projects list. Each has its
+// own pac-man element and its own spine to eat.
+function activePacScene():
+  | { host: HTMLElement; pac: HTMLElement; ol: HTMLElement; mobile: boolean }
+  | null {
+  const scene = document.querySelector<HTMLElement>('.tl-scene');
+  if (scene && scene.offsetParent !== null) {
+    const pac = scene.querySelector<HTMLElement>('.tl-pac');
+    const ol = scene.querySelector<HTMLElement>('.timeline');
+    if (pac && ol) return { host: scene, pac, ol, mobile: false };
+  }
+  const mobile = document.querySelector<HTMLElement>('.tl-mobile');
+  if (mobile && mobile.offsetParent !== null) {
+    const pac = mobile.querySelector<HTMLElement>('.tl-pac');
+    const ol = mobile.querySelector<HTMLElement>('.tl-mlist:not([hidden])');
+    if (pac && ol) return { host: mobile, pac, ol, mobile: true };
+  }
+  return null;
+}
 
 function pacAtBottom() {
   return (
@@ -514,8 +536,7 @@ function pacAtBottom() {
 // Continued scrolling at the page bottom feeds pac instead of the scrollbar,
 // at the same rate as a normal scroll; scrolling up unwinds him first.
 function pacConsumeScroll(dy: number): boolean {
-  const scene = document.querySelector<HTMLElement>('.tl-scene');
-  if (!scene || scene.offsetParent === null) return false;
+  if (!activePacScene()) return false;
   if (dy > 0) {
     if (!pacAtBottom() || pacRemaining <= 0.5) return false;
   } else if (dy >= 0 || pacExtra <= 0) {
@@ -542,26 +563,32 @@ function onPacTouchMove(e: TouchEvent) {
 }
 
 function syncTimelinePac(scrolling = false) {
-  const scene = document.querySelector<HTMLElement>('.tl-scene');
-  if (!scene || scene.offsetParent === null) return; // absent or dark mode
-  const pac = scene.querySelector<HTMLElement>('.tl-pac');
-  const ol = scene.querySelector<HTMLElement>('.timeline');
-  if (!pac || !ol) return;
+  const sc = activePacScene();
+  if (!sc) return; // no timeline on screen (e.g. dark mode)
+  const { host, pac, ol, mobile } = sc;
 
-  // first sync after a load / theme switch snaps to state without animating
-  if (!scene.dataset.pacInit) {
-    scene.dataset.pacInit = '1';
+  // whenever the active list changes (desktop<->mobile, or a tab switch) reset
+  // the accumulated munch and snap to position once without poof animations
+  if (ol !== lastPacOl) {
+    lastPacOl = ol;
     pacExtra = 0;
     pacPrevY = 0;
-    scene.classList.add('tl-noanim');
-    requestAnimationFrame(() => scene.classList.remove('tl-noanim'));
+    host.classList.add('tl-noanim');
+    requestAnimationFrame(() => host.classList.remove('tl-noanim'));
   }
 
   const rect = ol.getBoundingClientRect();
-  // pac-man holds position in the upper part of the viewport, below the
-  // sticky nav, so entries get eaten a moment before they'd scroll away
-  const bar = document.querySelector('.topbar');
-  const anchor = (bar ? bar.getBoundingClientRect().bottom : 56) + 64;
+  // pac holds just below whatever is pinned to the top of the viewport: the
+  // nav on desktop, the sticky Work / Projects tabs on mobile
+  let anchor: number;
+  if (mobile) {
+    const tabs = host.querySelector('.tl-tabs');
+    anchor = (tabs ? tabs.getBoundingClientRect().bottom : 96) + 22;
+  } else {
+    const bar = document.querySelector('.topbar');
+    anchor = (bar ? bar.getBoundingClientRect().bottom : 56) + 64;
+  }
+
   const max = Math.max(0, rect.height - 16); // spine ends 8px short of each end
   const base = anchor - rect.top;
   // the munch boundary may run a little past the spine's end so the last
@@ -569,15 +596,17 @@ function syncTimelinePac(scrolling = false) {
   pacExtra = Math.max(0, Math.min(pacExtra, rect.height - base));
   const eatenRaw = Math.max(0, Math.min(rect.height, base + pacExtra));
   const eaten = Math.min(max, eatenRaw);
-  scene.style.setProperty('--tl-eaten', eaten.toFixed(1) + 'px');
+  host.style.setProperty('--tl-eaten', eaten.toFixed(1) + 'px');
   pacRemaining = rect.height - eatenRaw;
 
   // pac floats at the anchor even before the spine's top reaches him
   // (munching thin air), then rides the eaten edge down to the spine's end.
-  // Clamped a hair short of the scene's bottom edge: poking past it would
+  // Clamped a hair short of the spine's bottom edge: poking past it would
   // grow the page's scrollHeight and feed back into the scroll position.
+  // Offset by the list's own top so his mouth sits on the eaten edge whether
+  // the list starts at the host's top (desktop) or below the tabs (mobile).
   const pacY = Math.min(max - 6, base + pacExtra);
-  scene.style.setProperty('--tl-pac-y', pacY.toFixed(1) + 'px');
+  host.style.setProperty('--tl-pac-y', (ol.offsetTop + 8 + pacY).toFixed(1) + 'px');
 
   // he shows up as soon as the page starts scrolling at all
   pac.classList.toggle('is-active', window.scrollY > 4);
@@ -602,10 +631,11 @@ function syncTimelinePac(scrolling = false) {
   // anything on the spine above pac-man's mouth has been eaten. The dot and
   // its connector bar to the card sit at the same height, so the instant that
   // bar is eaten the whole entry — dot, connector and card — poofs out of
-  // existence together; scrolling back up rebuilds it from scraps.
+  // existence together; scrolling back up rebuilds it from scraps. Scoped to
+  // the active list so the hidden mobile tab's items are never touched.
   const boundary = rect.top + 8 + eatenRaw;
-  const animate = !reduceMotion() && !scene.classList.contains('tl-noanim');
-  scene.querySelectorAll<HTMLElement>('.tl-entry').forEach((entry) => {
+  const animate = !reduceMotion() && !host.classList.contains('tl-noanim');
+  ol.querySelectorAll<HTMLElement>('.tl-entry').forEach((entry) => {
     const dot = entry.querySelector('.tl-dot');
     if (!dot) return;
     const r = dot.getBoundingClientRect();
@@ -626,7 +656,7 @@ function syncTimelinePac(scrolling = false) {
       }
     });
   });
-  scene.querySelectorAll<HTMLElement>('.tl-yearmark').forEach((mark) => {
+  ol.querySelectorAll<HTMLElement>('.tl-yearmark').forEach((mark) => {
     const r = mark.getBoundingClientRect();
     mark.classList.toggle('is-eaten', r.top + r.height / 2 < boundary);
   });
@@ -667,6 +697,9 @@ function switchTimelineTab(tab: string) {
       list.classList.add('is-entering');
     }
   });
+
+  // re-point pac-man at the freshly-shown list
+  syncTimelinePac();
 
   // if the toggle has scrolled up under the nav, snap it back into view so the
   // freshly-shown (possibly shorter) list doesn't leave the user mid-page

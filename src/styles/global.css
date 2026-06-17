@@ -945,9 +945,10 @@ a:hover {
   position: absolute;
   z-index: 2;
   left: 10px;
-  /* --tl-pac-y is unclamped below 0 so pac can hover at his viewport spot,
-     munching air, before the spine's top has reached him */
-  top: calc(8px + var(--tl-pac-y, 0px));
+  /* --tl-pac-y is the full top within his host (already includes the list's
+     own offset), and may dip below the spine's top so he can hover at his
+     viewport spot munching air before the spine reaches him */
+  top: var(--tl-pac-y, 8px);
   width: 26px;
   height: 26px;
   /* built facing right, rotated to chomp downward */
@@ -1106,6 +1107,7 @@ a:hover {
    ========================================================================= */
 .tl-mobile {
   display: none; /* shown only <880 (rule below) */
+  position: relative; /* offset parent for pac-man */
 }
 
 @media (max-width: 879px) {
@@ -1213,7 +1215,9 @@ a:hover {
   content: "";
   position: absolute;
   left: 9px;
-  top: 8px;
+  /* --tl-eaten (px, set on .tl-mobile by JS) trims the spine from the top as
+     pac-man chomps down it */
+  top: calc(8px + var(--tl-eaten, 0px));
   bottom: 8px;
   width: 2px;
   background: color-mix(in srgb, var(--cat-work) 32%, var(--border-strong));
