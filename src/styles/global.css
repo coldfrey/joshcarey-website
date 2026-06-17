@@ -1509,14 +1509,19 @@ a:hover {
     align-items: flex-start;
     padding-top: 4px;
   }
-  /* connector stub from the spine to the card */
+  /* connector stub from the spine to the card — tinted by category (matching
+     the dot) so each card visibly attaches to the timeline */
   .tl-rail::before {
     content: "";
     position: absolute;
     top: 11px;
     height: 2px;
-    background: var(--border);
+    background: color-mix(in srgb, var(--cat-work) 42%, var(--border-strong));
     transition: opacity 0.25s ease;
+  }
+  .tl-entry[data-kind="project"] .tl-rail::before,
+  .tl-entry[data-kind="life"] .tl-rail::before {
+    background: color-mix(in srgb, var(--cat-side) 42%, var(--border-strong));
   }
   .tl-entry[data-side="left"] .tl-rail::before {
     left: 0;
