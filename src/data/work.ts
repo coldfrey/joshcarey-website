@@ -37,6 +37,16 @@ export const work: WorkItem[] = [
     stack: ['Astro', 'TypeScript', 'Cloudflare'],
   },
   {
+    title: 'Magic Skyweed',
+    kind: 'project',
+    description: 'Paragliding weather and flight planning, personalised to your wing.',
+    date: '2026',
+    range: 'Mar 2026 - now',
+    status: 'active',
+    href: 'https://magicskyweed.com',
+    stack: ['React', 'TypeScript', 'Cloudflare', 'Open-Meteo'],
+  },
+  {
     title: 'Cecil Wright & Partners',
     role: 'AI & Digital Transformation',
     description: 'AI and digital transformation at a boutique superyacht brokerage.',
